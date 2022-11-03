@@ -1,4 +1,5 @@
 % Mon  5 Jul 18:00:15 CEST 2021
+% Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
 %  it under the terms of the GNU General Public License as published by
@@ -13,7 +14,7 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-% c.f. Rietkerk et al. 2002, Self-Organization of Vegetation in Arid Ecosystems 
+%% c.f. Rietkerk et al. 2002, Self-Organization of Vegetation in Arid Ecosystems 
 %
 classdef Rietkerk < handle
 	properties
@@ -24,7 +25,10 @@ classdef Rietkerk < handle
 		% duration of model run
 		T
 		% number of output time steps
-		nt
+		%nt
+		dt
+		% output time step
+		dto
 		% output time step
 		%dt
 		% physical parameters of the Rietkerk model
@@ -48,6 +52,8 @@ classdef Rietkerk < handle
 			 ,'w0',	 0.2  ...   % 1
 			 ... % TODO used to be 1 in the first runs
 			 ,'kb',	 5 ...     % g m^-2
+			 , 'Manning', 0.055 ... % c.f. caviedes 2022 
+		         , 'dzb_dx', 0 ...
 		); % struct p
 		% standard deviation of parameters per unit time
 		% (continuous perturbation)
@@ -82,14 +88,22 @@ classdef Rietkerk < handle
 			 ,'w0',	0 ...
 			 ,'R',  0 ... 
 			 ,'kb', 0 ... 
+			 , 'Manning', 0 ... % c.f. caviedes 2022 
+		         , 'dzb_dx', 0 ...
 		); % pss
 		initial_condition = 'random';
 		% state of random number generator at start
 		rng = 0;
 		% derivative matrices
 		D1
+		D1x
+		D1y
 		D1c
+		D1xc
+		D1yc
 		D2
+		D2x
+		D2y
 		% identity matrix
 		I
 		% zero matrix
@@ -99,12 +113,22 @@ classdef Rietkerk < handle
 		solver_stationary = @picard;
 		odeopt   = struct();
 		symbolic = false;
+		innersolver = 2;
 		order    = 2;
+		zero_inertia = false;
+		fx;
+		fy;
+		bc = {'circular','circular'};
 	end % properties
 	methods
 		function obj = Rietkerk(varargin)
-			for idx=1:2:length(varargin)-1
+			if (~isempty(varargin) && isstruct(varargin{1}))
+				obj = Rietkerk();
+				obj = copyfields_deep(varargin{1},obj);
+			else
+			    for idx=1:2:length(varargin)-1
 				obj = setfield_deep(obj,varargin{idx},varargin{idx+1});
+			    end
 			end
 		end % constructor
 		function x = x(obj,id)
@@ -119,9 +143,12 @@ classdef Rietkerk < handle
 		function dx = dx(obj)
 			dx = obj.L/obj.n;
 		end
-		function dt = dt(obj)
-			dt = obj.T/obj.nt;
+		function ndim = ndim(obj)
+			ndim = length(obj.n);
 		end
+%		function dt = dt(obj)
+%			dt = obj.T/obj.nt;
+%		end
 	end % methods
 end % classdef Rietkerk
 

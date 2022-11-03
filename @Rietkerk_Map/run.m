@@ -1,4 +1,8 @@
 % Mon 31 May 20:20:46 CEST 2021
+% Karl Kästner, Berlin
+%
+%% run the Rietkerk model with parameters specified by varargin,
+%% or retrieve the saved results, when the model was already run
 function [t,y,rk,runtime] = run(obj,varargin)
 	% compute hashkey
 	rk = Rietkerk(varargin{:});
@@ -10,8 +14,9 @@ function [t,y,rk,runtime] = run(obj,varargin)
 		obj.write_table();
 	end
 	oname = [obj.path_str,filesep,obj.base_str,num2str(key),'.mat'];
+	oname_final = [obj.path_str,filesep,obj.base_str,num2str(key),'-final.mat'];
 	
-	if (~exist(oname,'file'))
+	if (~exist(oname,'file') && ~(obj.loadfinal && exist(oname_final,'file')))
 		printf('Running %d\n',key);
 		% run model
 		y0 = rk.init();
@@ -22,10 +27,26 @@ function [t,y,rk,runtime] = run(obj,varargin)
 		% save disk space
 		y = single(y);
 		% store model results
-		save(oname,'t','y','rk','runtime');
+		save(oname,'-v7.3','t','y','rk','runtime');
+		y_ = y;
+		t_ = t;
+		y = y([1,end],:);
+		t = t([1,end]);
+		save(oname_final,'-v7.3','t','y','rk','runtime');
+		y = y_;
+		t = t_;
 	else
 		% load results
-		disp(['Loading ',oname])
-		load(oname);
+		if (~obj.loadfinal)
+			disp(['Loading ',oname]);
+			load(oname);
+		else
+			disp(['Loading ',oname_final]);
+			load(oname_final);
+			% TODO hot fix
+			if (size(t,1) == 2 && size(t,2)>1)
+				t = t(1,[1,end])';
+			end
+		end
 	end % else of if ~exist file
 end % run

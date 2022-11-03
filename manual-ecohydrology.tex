@@ -16,7 +16,7 @@ breaklines=true
 \setlength{\cftsubsecnumwidth}{3.5em}
 
 \title{Manual for Package:
-ecohydrology\protect\\Revision 1:2
+ecohydrology\protect\\Revision 2:3M
 }
 \author{Karl K\"astner}
 %\date{}
@@ -71,9 +71,21 @@ ${}$
 \subsection{Rietkerk}
 ${}$
 \begin{lstlisting}
+ c.f. Rietkerk et al. 2002, Self-Organization of Vegetation in Arid Ecosystems 
 
 \end{lstlisting}
 \subsection{celerity}
+${}$
+\begin{lstlisting}
+ migration celerity of the pattern
+
+\end{lstlisting}
+\subsection{critical\_rainfall\_depth}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{diffusion\_rate}
 ${}$
 \begin{lstlisting}
 
@@ -81,11 +93,19 @@ ${}$
 \subsection{dlogz\_dx}
 ${}$
 \begin{lstlisting}
+ Rietkerk pde transformed to set of odes through assuming wave-equations
 
 \end{lstlisting}
 \subsection{dz\_dt}
 ${}$
 \begin{lstlisting}
+ time-derivative of the Rietkerk-pde
+
+\end{lstlisting}
+\subsection{dz\_dt\_coefficient}
+${}$
+\begin{lstlisting}
+ time-derivative of the Rietkerk-pde
 
 \end{lstlisting}
 \subsection{dz\_dx}
@@ -96,6 +116,7 @@ ${}$
 \subsection{extract1}
 ${}$
 \begin{lstlisting}
+ extract biomass, soil water and surface water from the combined vector
 
 \end{lstlisting}
 \subsection{extract2}
@@ -103,32 +124,57 @@ ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
+\subsection{growth\_rate}
+${}$
+\begin{lstlisting}
+ migration celerity of the pattern
+
+\end{lstlisting}
 \subsection{homogeneous\_state}
 ${}$
 \begin{lstlisting}
+ homogeneous (not necessarily stable) states of the Rietkerk system
 
 \end{lstlisting}
 \subsection{infiltration\_enhancement}
 ${}$
 \begin{lstlisting}
+ infiltration enhancement of the Rietkerk model
 
 \end{lstlisting}
 \subsection{init}
 ${}$
 \begin{lstlisting}
+ initialize all variables
+
+\end{lstlisting}
+\subsection{initial\_condition\_from\_central\_frequency}
+${}$
+\begin{lstlisting}
+ extract dominant frequeny from a previous model run and generate a new
+ initial condition with only this frequency
+ for faster generation of asymptotic patterns
 
 \end{lstlisting}
 \subsection{jacobian}
 ${}$
 \begin{lstlisting}
+ jacobian of the Rietkerk model
 
 \end{lstlisting}
 \subsection{make\_symbolic}
 ${}$
 \begin{lstlisting}
+ make model parameters symbolic
 
 \end{lstlisting}
 \subsection{random\_state}
+${}$
+\begin{lstlisting}
+ generate random initial state
+
+\end{lstlisting}
+\subsection{reaction\_matrix}
 ${}$
 \begin{lstlisting}
 
@@ -136,21 +182,30 @@ ${}$
 \subsection{solve}
 ${}$
 \begin{lstlisting}
+ solve the Rietkerk model
+
+\end{lstlisting}
+\subsection{solve\_split}
+${}$
+\begin{lstlisting}
 
 \end{lstlisting}
 \subsection{solve\_stationary}
 ${}$
 \begin{lstlisting}
+ solve until stationary state is reached
 
 \end{lstlisting}
 \subsection{solve\_trapezoidal}
 ${}$
 \begin{lstlisting}
+ trapezoidal time stepping with fixed time step
 
 \end{lstlisting}
 \subsection{stationary\_step}
 ${}$
 \begin{lstlisting}
+ quasi-stationary time-step
 
 \end{lstlisting}
 \section{@Rietkerk\_Map}
@@ -163,14 +218,61 @@ ${}$
 \subsection{hash}
 ${}$
 \begin{lstlisting}
+ has the model parameters for filename generation
 
 \end{lstlisting}
 \subsection{run}
 ${}$
 \begin{lstlisting}
+ run the Rietkerk model with parameters specified by varargin,
+ or retrieve the saved results, when the model was already run
 
 \end{lstlisting}
 \subsection{write\_table}
+${}$
+\begin{lstlisting}
+ write hashtable as human readable csv
+
+\end{lstlisting}
+\section{ecohydrology}
+\subsection{migration\_celerity\_1d}
+${}$
+\begin{lstlisting}
+ estimate migration celerity of a travelling wave
+
+\end{lstlisting}
+\section{test}
+\subsection{test\_rietkerk\_asymptote}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_celerity}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_convergence}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_homogeneous}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_implicit\_1d}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_implicit\_2d}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_rietkerk\_zero\_inertia}
 ${}$
 \begin{lstlisting}
 

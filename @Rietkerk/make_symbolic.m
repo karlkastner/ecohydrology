@@ -1,8 +1,9 @@
 % 2021-07-02 13:29:01.973628215 +0200
-
-% make parameters symbolic
+% Karl Kästner, Berlin
+%
+%% make model parameters symbolic
+%
 function [p,s] = make_symbolic(obj)
-	%'cb','db','kb','gb','eb','a','rw','ew','Dh','eh','R','w0','k'};
 	f_C = fieldnames(obj.pmu);
 	p = struct();
 	for idx=1:length(f_C)
@@ -12,4 +13,7 @@ function [p,s] = make_symbolic(obj)
 	obj.D1c = sym('D1x');
 	obj.D1c = sym('D1x');
 	obj.D2  =  sym('D2x');
+	obj.D1  = sym('D1');
+	obj.I   = 1;
+	obj.Z   = 0;
 end

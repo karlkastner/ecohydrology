@@ -1,4 +1,5 @@
 % Sat 11 Dec 10:56:37 CET 2021
+% Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
 %  it under the terms of the GNU General Public License as published by
@@ -20,7 +21,9 @@ classdef Rietkerk_Map < handle
 		path_str     = './';
 		base_str     = 'rietkerk-';
 		map_str      = 'rietkerk-map.mat';
-		hashfield_C  = {'L','dx','T','dt','rng','pmu','pss','pst'};
+		hashfield_C  = {'L','dx','T','dt','rng','pmu','pss','pst', ...
+						'initial_condition','solver','bc'};
+		loadfinal    = false;
 	end % properties
 	methods
 		function obj = Rietkerk_Map(varargin)

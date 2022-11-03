@@ -1,4 +1,8 @@
 % 2021-05-31 21:59:40.374630793 +0200
+% Karl Kästner, Berlin
+%
+%% migration celerity of the pattern
+%
 function [c,cme] = celerity(obj,z)
 	if (isvector(z))
 		z = rvec(z);

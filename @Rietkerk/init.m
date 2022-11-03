@@ -1,26 +1,36 @@
 % Mon 31 May 20:20:46 CEST 2021
+% Karl Kästner, Berlin
+%
+%% initialize all variables
+%
 function y0 = init(obj)
 	dx      = obj.dx;
-	%obj.dt  = 0.5*dx/rk.pmu.Dh;
+	obj.fx  = fourier_axis(obj.x);
+	if (obj.ndim>1)
+	obj.fy  = fourier_axis(obj.x(2));
+	end
 	% initalize random number generator
 	rng(obj.rng);
 
 	% initial condition
+	if (isnumeric(obj.initial_condition))
+		y0 = obj.initial_condition;
+	else
 	switch (obj.initial_condition)
 	case {'random'}
 			y0 = obj.random_state();
 			% [b0,w0,h0] = obj.homogeneous_state(obj.p,state);
 			% z0 = flat(repmat([b0,w0,h0],prod(obj.n),1));
-	case {'colonized'}
+	case {'colonize'}
 			[b0,h0,w0] = obj.homogeneous_state([],0);
 			o = ones(obj.n,1);
 			y0 = [b0.*o; h0.*o; w0.*o];
-			%fdx = rk.x <= meta.cL;
 			% TODO no magic numbers
 			y0(2) = 10;
 	otherwise
 		error('Rietkerk:init');
 	end % swtich initial_condition
+	end
 
 	% prepare spatially varying parameters
 	f_C = fieldnames(obj.pmu);
@@ -32,55 +42,75 @@ function y0 = init(obj)
 		% dx : devide   as perturbations are average in space when cells are larger
 		% dt : multiply as perturbations should stay same over same time span,
 		%      irrespective of number of time steps
-		sd    = sd*sqrt(1/dx);
-		%oname = [oname,'-sd_',field,'-',num2str(sd)];
+		n = obj.n;
+		if (length(n)<2)
+			n(2) = 1;
+		end
+		sd    = sd*sqrt(1/prod(dx)); %dx.^obj.ndim);
+
 		if (sd>0)
-			obj.p.(field) = obj.pmu.(field).*gamrnd(1/sd^2,sd^2,obj.n,1);
+			obj.p.(field) = flat(obj.pmu.(field).*gamrnd(1/sd^2,sd^2,n));
 		else
 			obj.p.(field) = obj.pmu.(field);
 		end
-	%	obj.p.(field) = p.(field).mu*gr;
-		%rw_gr = gamrnd(1/sda^2,sda^2,length(x),1);
-		%Dh_gr = gamrnd(1/sda^2,sda^2,length(x),1);
-	%	gr = meanfilt1(gr,nfa);
-	%	for jdx=1:nfa
-	%		gr = lowpass1d_implicit(gr,rhoa);
-	%	end
-	%	for jdx=1:nfh
-	%		gr = highpass1d_implicit(gr,rhoa);
-	%	end
-	%	if (sda>0)
-	%	gr=(gr-mean(gr));
-	%	gr = 1+sda*gr/std(gr);
-	%	end
-	%	gr = gr(nfa/2+1:end);
-	%	%gr = gr/mean(gr);
-	%	p.(field)=p.(field)*gr;
-	%	p.rw = p.rw*rw_gr;
-	%	p.Dh = p.Dh*Dh_gr;
 	end
-	%rk.p = p;
 
-%	obj.x = linspace(0,obj.n(1),obj.L(1));
+	% expand scalar advection and diffusion coefficients (isotropic)
+	if (obj.ndim > 1)
+		f_C = {'eh'}; %,'eb','ew'};
+		for idx=1:length(f_C)
+			field = f_C{idx};
+			if (1 == length(obj.p.(field)))
+				obj.p.(field)(2) = obj.p.(field)(1);
+			end
+		end
+		% the velocity of the second axis is set to zero here
+		if (1 == length(obj.p.vh))
+			obj.p.vh(2) = 0;
+		end
+	end
+
+	% prepare discretization matrices
 	switch (length(obj.n))
 	case {1}
 		if (obj.pmu.vh ~= 0)
-			obj.D1  = derivative_matrix_1_1d(obj.n,obj.L,-sign(obj.p.vh(1)),'c');
+			obj.D1x  = derivative_matrix_1_1d(obj.n,obj.L,-sign(obj.p.vh(1)),obj.bc{1});
 		else
-			obj.D1 = 0;
+			obj.D1x = spzeros(obj.n(1));
 		end
-		obj.D1c = derivative_matrix_1_1d(obj.n,obj.L,2,'c');
-		obj.D2  = derivative_matrix_2_1d(obj.n,obj.L,obj.order,'circular');
+		obj.D1xc = derivative_matrix_1_1d(obj.n,obj.L,2,obj.bc{1});
+		obj.D2x  = derivative_matrix_2_1d(obj.n,obj.L,obj.order,obj.bc{1});
+		obj.D1   = obj.D1x;
+		obj.D1c  = obj.D1xc;
+		obj.D2   = obj.D2x;
 	case {2}
-%		obj.y   = linspace(0,obj.n(2),obj.L(2));
-		obj.D1  = [];
-		obj.D1c = [];
-		[Dx,Dy,D2x,Dxy,D2y] = derivative_matrix_2d(obj.n,obj.L,obj.order,'circular');
-		obj.D2 = D2x+D2y;
+		if (obj.p.vh(1) ~= 0)
+			D1x  = derivative_matrix_1_1d(obj.n(1),obj.L(1),-sign(obj.p.vh(1)),obj.bc{2});
+			%obj.D1x = kron(D1x,speye(obj.n(2)));
+			obj.D1x = kron(speye(obj.n(2)),D1x);
+		else
+			obj.D1x = spzeros(prod(obj.n));
+			%parse(prod(obj.n));
+		end
+		if (obj.p.vh(2) ~= 0)
+			D1y  = derivative_matrix_1_1d(obj.n(2),obj.L(2),-sign(obj.p.vh(2)),obj.bc{2});
+			%obj.D1y = kron(speye(obj.n(1)),D1y);
+			obj.D1y = kron(D1y,speye(obj.n(1)));
+		else
+			%obj.D1y = sparse(prod(obj.n));
+			obj.D1y = spzeros(prod(obj.n));
+		end
+		obj.D1xc = 0;
+		obj.D1yc = 0;
+		[Dx,Dy,D2x,Dxy,D2y] = derivative_matrix_2d(obj.n,obj.L,obj.order,obj.bc);
+		obj.D2  = D2x+D2y;
+		obj.D2x = D2x;
+		obj.D2y = D2y;
+		%obj.D1  = obj.D1x+obj.D1y;
 	otherwise
 		error('n and L must have both 1 or 2 elements')
 	end
-	n = prod(obj.n);
+	n     = prod(obj.n);
 	obj.Z = sparse(n,n);
 	obj.I = speye(n);
 

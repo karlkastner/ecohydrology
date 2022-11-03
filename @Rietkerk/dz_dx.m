@@ -1,6 +1,7 @@
 % Fri  2 Jul 10:15:04 CEST 2021
+% Karl Kästner, Berlin
 %
-% rietkerk model transformed to set of odes
+% Rietkerk-pde transformed to set of odes
 % time eliminated with travelling wave assumption:
 %	t = 1/c*x
 %

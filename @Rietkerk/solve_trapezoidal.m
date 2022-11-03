@@ -1,5 +1,10 @@
+% 2021-07-06 12:45:16.676938153 +0200
+% Karl Kästner, Berlin
+%
+%% trapezoidal time stepping with fixed time step
+%
 function [t,zz] = solve_trapezoidal(obj,t,z)
-	reltol = 1e-;
+	reltol = 1e-6;
 	zz = zeros(length(t),length(z));
 	z0 = z;
 	[A0,i0] = obj.jacobian(t(1),z0);

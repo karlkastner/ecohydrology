@@ -1,5 +1,8 @@
 % Sat 11 Dec 11:28:49 CET 2021
-% write hashtable as human readable csv
+% Karl Kästner, Berlin
+%
+%% write hashtable as human readable csv
+%
 function write_table(obj)
 
 	if (~isempty(obj.map))
@@ -52,6 +55,21 @@ function write_table(obj)
 			val = s.(field_C{idx});
 			if (isstruct(val))
 				print_values(val,fieldnames(val));
+			elseif (isa(val,'function_handle'))
+				fprintf(fid,'%s',func2str(val));
+			elseif (iscell(val))
+				for cdx=1:length(val)
+					if (isstr(val{cdx}))
+						if (1==cdx)
+							val_s = val{cdx};
+						else
+							val_s = [val_s,' ',val{cdx}];
+						end
+					else
+						error('not yet implmented')
+					end
+				end % for cdx
+				fprintf(fid,'%g;',val_s);
 			else
 				fprintf(fid,'%g;',val);
 			end

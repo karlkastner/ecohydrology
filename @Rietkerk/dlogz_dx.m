@@ -1,6 +1,7 @@
 % 2021-07-02 12:42:44.980292936 +0200
+% Karl Kästner, Berlin
 %
-% rietkerk ode transformed to set of odes through assuming wave-equations
+%% Rietkerk pde transformed to set of odes through assuming wave-equations
 % 
 % 
 % log-transformed version
