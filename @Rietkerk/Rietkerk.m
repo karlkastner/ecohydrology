@@ -116,6 +116,7 @@ classdef Rietkerk < handle
 		innersolver = 2;
 		order    = 2;
 		zero_inertia = false;
+		opt = struct('gbm',false,'legacy_ic',false);
 		fx;
 		fy;
 		bc = {'circular','circular'};

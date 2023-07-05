@@ -5,11 +5,10 @@
 %
 function [b,w,h] = homogeneous_state(obj,p,state)
 	if (nargin()<2||isempty(p))
-		% TODO no better p?
 		p = obj.pmu;
 	end
 	if (nargin()<3)
-		state = 1;
+		state = 2;
 	end
 	switch(state)
 	case{0}
@@ -31,11 +30,11 @@ function [b,w,h] = homogeneous_state(obj,p,state)
 		     ./ (p.db.^2.*p.kb.*p.w0 - p.R.*p.cb.^2.*p.gb  ...
                          + p.R.*p.cb.*p.db + p.cb.*p.db.*p.kw.*p.rw  ...
                          - p.cb.*p.db.*p.gb.*p.kb.*p.w0);	
-	case {3}
+	case {2}
 		% state dependent on (local) water availability
-		Rc      = obj.critical_rainfall_depth(p);
-		[b,w,h] = obj.homogeneous_state(p,0);
-		[b1,w1,h1] = obj.homogeneous_state(p);
+		Rc         = obj.critical_rainfall_depth(p);
+		[b,w,h]    = obj.homogeneous_state(p,0);
+		[b1,w1,h1] = obj.homogeneous_state(p,1);
 		fdx     = p.R > Rc;
 		b(fdx)  = b1(fdx);
 		w(fdx)  = w1(fdx);

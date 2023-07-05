@@ -5,18 +5,21 @@
 %% or retrieve the saved results, when the model was already run
 function [t,y,rk,runtime] = run(obj,varargin)
 	% compute hashkey
-	rk = Rietkerk(varargin{:});
+	rk  = Rietkerk(varargin{:});
 	key = obj.hash(rk);
-	% test if hashkey is not yet in database
+	if (0)
+	% test if hashkey is not yet in databas
 	if (~isKey(obj.map,key))
 		% add hashkey to database and rewrite table
 		obj.map(key) = rk;
 		obj.write_table();
 	end
-	oname = [obj.path_str,filesep,obj.base_str,num2str(key),'.mat'];
+	end
+	oname       = [obj.path_str,filesep,obj.base_str,num2str(key),'.mat'];
 	oname_final = [obj.path_str,filesep,obj.base_str,num2str(key),'-final.mat'];
 	
-	if (~exist(oname,'file') && ~(obj.loadfinal && exist(oname_final,'file')))
+	if (   ~exist(oname,'file') ...
+            && ~(obj.loadfinal && exist(oname_final,'file')))
 		printf('Running %d\n',key);
 		% run model
 		y0 = rk.init();
@@ -48,5 +51,6 @@ function [t,y,rk,runtime] = run(obj,varargin)
 				t = t(1,[1,end])';
 			end
 		end
+		printf('Runtime %g\n',runtime);
 	end % else of if ~exist file
 end % run

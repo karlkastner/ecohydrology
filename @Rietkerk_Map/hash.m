@@ -34,13 +34,18 @@ function [key_val, key_str] = hash(obj,rt)
 							error('not yet implmented')
 						end
 					end % for cdx
-				else
+				elseif (isnumeric(val))
+					if (obj.opt.hashvectors)
+						val_s = hash_float(val);
+					else
 					if (length(val)<3)
 						val_s = sprintf('%g',val);
 					else
-						% TODO vector hash?
 						val_s = 'vector';
 					end
+					end
+				else
+					error('unimplemented type');
 				end
 				if (isempty(prefix))
 					%key_str = [key_str, sprintf('%s=%g;',field_C{idx},val)];

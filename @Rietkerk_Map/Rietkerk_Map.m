@@ -15,15 +15,21 @@
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
 %% database for Rietkerk model runs
+%
+%	TODO check for hash collision
+%	TODO multiple folders to search
+%	TODO build table from files
 classdef Rietkerk_Map < handle
 	properties
 		map
 		path_str     = './';
 		base_str     = 'rietkerk-';
 		map_str      = 'rietkerk-map.mat';
+		% TODO add seed
 		hashfield_C  = {'L','dx','T','dt','rng','pmu','pss','pst', ...
 						'initial_condition','solver','bc'};
 		loadfinal    = false;
+		opt          = struct('hashvectors',false);
 	end % properties
 	methods
 		function obj = Rietkerk_Map(varargin)
@@ -34,6 +40,7 @@ classdef Rietkerk_Map < handle
 		function init(obj)
 			% load hashtable
 			file_str = [obj.path_str,filesep,obj.map_str];
+			if (0)
 			if (exist(file_str,'file'))
 				load(file_str,'map');
 				obj.map = map;
@@ -42,6 +49,7 @@ classdef Rietkerk_Map < handle
 				% workaround for Matlab Bug
 				map = containers.Map(0,Rietkerk());
 				obj.map = map;
+			end
 			end
 		end % init
 	end % methods

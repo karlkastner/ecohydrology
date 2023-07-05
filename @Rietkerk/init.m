@@ -46,10 +46,25 @@ function y0 = init(obj)
 		if (length(n)<2)
 			n(2) = 1;
 		end
-		sd    = sd*sqrt(1/prod(dx)); %dx.^obj.ndim);
 
 		if (sd>0)
-			obj.p.(field) = flat(obj.pmu.(field).*gamrnd(1/sd^2,sd^2,n));
+			if (~obj.opt.gbm)
+				sd_averaged   = sd*sqrt(1/prod(dx)); %dx.^obj.ndim);
+				obj.p.(field) = flat(obj.pmu.(field).*gamrnd(1/sd_averaged^2,sd_averaged^2,n));
+			else
+				% by definition, the moments of the (g)-bm-(bridge)
+				% do not depend on dx but only on L, so dx does
+				% not have to be rescaled
+				%
+				% TODO this is for 1d only
+				% TODO simply make log(mu_a) = bar log(x)
+				%		   
+				% determine parameter
+				[gmu,gsd] = gbm_moment2par(1,sd,obj.x(end)-obj.x(1));
+				% simulate geometric brownian bridge
+				z = gbm_bridge(obj.x,gmu,gsd,1,1);
+				obj.p.(field) = flat(obj.pmu.(field))*z;
+			end
 		else
 			obj.p.(field) = obj.pmu.(field);
 		end
