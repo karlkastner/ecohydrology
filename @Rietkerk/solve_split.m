@@ -2,26 +2,19 @@
 %
 %% evolve the Rietker-PDE in time using a splitting scheme
 %
-function [t,yy,fallback] = solve_split(obj,to,y0,dt,dmethod)
-	AID = 2;
-	FDM = 1;
-	SPECTRAL = 0;
-	if (nargin()<4)
-		dmethod = AID;
-	end % if nargin < 4
-	tol    = 1e-4;
-	pcgtol = 1e-5;
+function [t,yy,fallback] = solve_split(obj,to,y0)
+	dt = obj.dt;
 	nto = length(to);
 	nt  = round((to(end)-to(1))/dt)+1;
 	t   = linspace(to(1),to(end),nt)';
 	fallback = false(nto,1);
 	yy  = zeros(nto,numel(y0));
 	prefactor = true;
-	resn  =[];
+	resn = [];
 	bbar = [];
-	% prepare iteration
-	switch (dmethod)
-	case(AID)
+	% prepare time stepping, diffusin part
+	switch (obj.opt.diffusion_scheme)
+	case('aid')
 		% constant coefficients
 		[Dx,Dy,Dxx,Dyy] = setup_matrix();
 		Ax = Dx+Dxx;
@@ -39,7 +32,7 @@ function [t,yy,fallback] = solve_split(obj,to,y0,dt,dmethod)
 		[ly,uy] = lu(I-dt*Ay);
 		end
 		end
-	case (FDM)
+	case ('fdm')
 		% TODO, this is only 1D
 		c  = obj.dz_dt_coefficient(0,cvec(y0));
 		nn = prod(obj.n);
@@ -51,8 +44,64 @@ function [t,yy,fallback] = solve_split(obj,to,y0,dt,dmethod)
 		if (obj.ndim>1)
 			error('not yet implmented');
 		end
-	case (SPECTRAL)
+	case ('spectral')
 		% nothing to do, no matrices required
+	case ('fdm-positive')
+		% unit impulse
+		z0 = zeros(prod(obj.n),1);
+		z0(1,1) = 1;
+		% set up the diffusion matrices
+		% convolution matrices (impulse response)
+		dx = obj.dx;
+		gb = diffuse_trapezoidal(dt,z0,obj.n,dx,obj.p.eb);
+		gw = diffuse_trapezoidal(dt,z0,obj.n,dx,obj.p.ew);
+		k  = 10;
+
+		gh = diffuse_trapezoidal(dt/k,z0,obj.n,dx,obj.p.eh);
+		%gh = diffuse_euler_implicit(dt/k,z0,obj.n,dx,obj.p.eh);
+	
+		if (2 == obj.ndim)
+			gb = reshape(gb,obj.n);
+			gw = reshape(gw,obj.n);
+			gh = reshape(gh,obj.n);
+		end
+		% ft of convolution matrices
+		obj.aux.fgb = fft2(gb);
+		obj.aux.fgw = fft2(gw);
+		obj.aux.fgh = fft2(gh).^k;
+	case {'advection-diffusion'}
+		% unit impulse
+		z0 = zeros(prod(obj.n),1);
+		z0(1,1) = 1;
+		% set up the diffusion matrices
+		% convolution matrices (impulse response)
+		dx = obj.dx;
+		dt_max = 0.5*sum(dx.^2./obj.p.eb);
+		kb = ceil(dt/dt_max);
+		gb = step_diffuse_trapezoidal(dt/kb,z0,obj.n,dx,obj.p.eb);
+		dt_max = 0.5*sum(dx.^2./obj.p.ew);
+		kw = ceil(dt/dt_max);
+		gw = step_diffuse_trapezoidal(dt/kw,z0,obj.n,dx,obj.p.ew);
+		dt_max = 0.5*sum(dx.^2./obj.p.eh);
+		k1  = ceil(dt/dt_max);
+		k2  = ceil(max(abs(obj.p.vh)*dt./dx));
+		kh   = max(k1,k2);
+		kh   = max(1,kh);
+%		k  = max(2,k)
+		%gh = diffuse_trapezoidal(dt/k,z0,obj.n,dx,obj.p.eh);
+		gh = step_advection_diffusion_trapezoidal(dt/kh,obj.dx,obj.n,z0,obj.p.vh,obj.p.eh);
+		%gh = step_advection_diffusion_euler_implicit(dt/k,obj.dx,obj.n,z0,obj.p.vh,obj.p.eh);
+		%gh = diffuse_euler_implicit(dt/k,z0,obj.n,dx,obj.p.eh);
+	
+		if (2 == obj.ndim)
+			gb = reshape(gb,obj.n);
+			gw = reshape(gw,obj.n);
+			gh = reshape(gh,obj.n);
+		end
+		% ft of convolution matrices
+		obj.aux.fgb = fft2(gb).^kb;
+		obj.aux.fgw = fft2(gw).^kw;
+		obj.aux.fgh = fft2(gh).^kh;
 	case {'krylov'}
 		if (obj.bc{1} ~= 'circular' || (obj.bc{2} ~= 'circular'))
 			error('only applicable to circular boundary conditions');
@@ -65,11 +114,6 @@ function [t,yy,fallback] = solve_split(obj,to,y0,dt,dmethod)
 		[l,u] = ilu(A,struct('type','nofill'));
 	case {'implicit-euler-fourier'}
 		[Dx,Dy,Dxx,Dyy] = setup_matrix();
-%subplot(2,2,1)
-%spy(Dyy)
-%subplot(2,2,2)
-%spy(Dxx)
-%full(Dxx(1:obj.n(1),1:obj.n(1)))
 		A = (I - dt*Dx - dt*Dy - dt*Dxx - dt*Dyy);
 		x = zeros(obj.n);
 		x(1,1)=1;
@@ -81,56 +125,64 @@ function [t,yy,fallback] = solve_split(obj,to,y0,dt,dmethod)
 			r = Ai \ x;
 			% Fourier transform
 			fr{idx} = fft2(reshape(r,obj.n));
-%rms((Dx(:)))
-%rms((Dy(:)))
-%rms(flat(Ai-Ai'))
-if(0)
-subplot(3,3,idx)
-imagesc(fftshift(reshape(r,obj.n)))
-subplot(3,3,3+idx)
-imagesc(fftshift(real(fr{idx})))
-colorbar
-subplot(3,3,6+idx)
-imagesc(fftshift(imag(fr{idx})))
-colorbar
-end
 		end
 	otherwise
 		error('unavailable');
-	end % switch dmethod
+	end % switch diffusion_scheme
+
+	switch (obj.opt.advection_scheme)
+	case {'shift'}
+		gh  = advection_kernel(obj.dx,dt,obj.n,obj.pmu.vh);
+		fgh = fft2(gh);
+		obj.aux.fgh = fgh.*obj.aux.fgh;
+	case {'advection-diffusion'}
+		% nothing to do
+	otherwise
+		error('not yet implemented');
+	end
 
 	y = y0;
 	yy(1,:) = y;
 	tdxo = 2;
 	for tdx=2:nt
 		% react half step
-		y = react(t(tdx),y,dt/2);
+		% y = react(t(tdx),y,dt/2);
+		y = obj.opt.reaction_scheme(t(tdx),dt/2,y, ...
+			@obj.dz_dt_coefficient_react_homogeneous, ...
+			@obj.dz_dt_coefficient_react_inhomogeneous);
+		%y = obj.opt.reaction_scheme(t(tdx),dt/2,y, @(t,z) obj.dz_dt_coefficient_react_homogeneous(t,z).* z + obj.dz_dt_coefficient_react_inhomogeneous(t,z));
+
+		if (any(y<0))
+			% fall back to fdm diffusion, if solution is not smooth
+			%y = step_diffuse_fdm_implicit(t,y0,dt,y);
+			%warning('solution is not positive');
+			error('1 solution is not positive');
+			%fallback(tdx) = true;
+		end
+		% for non-positive reaction, use implicit euler
+		%fdx = (y<0);
+		%y(fdx) = react_euler_implicit(t(tdx),dt/2,@(t,z) obj.dz_dt_coefficient_react_homogeneous(t,z).* z + obj.dz_dt_coefficient_react_inhomogeneous(t,z));
 		% diffuse full step
-		switch (dmethod)
-		case {FDM}
+		switch (obj.opt.diffusion_scheme)
+		case {'fdm'}
 			y = step_diffuse_fdm_implicit(t(tdx)+dt/2,y,dt);
-		case {SPECTRAL}
+		case {'fdm-positive','advection-diffusion'}
+			y = step_diffuse_fdm_positive(t(tdx)+dt/2,y,dt);
+		case {'spectral'}
 			y = step_diffuse_analytic(t(tdx)+dt/2,y,dt);
-		case {AID}
+		case {'aid'}
 			y = step_diffuse_aid(t(tdx)+dt/2,y,dt);
 		case {'krylov'}
 			y = step_diffuse_krylov(t(tdx)+dt/2,y,dt);
 		case {'implicit-euler-fourier'}
 			y = step_diffuse_implicit_euler_fourier(t(tdx)+dt/2,y,dt);
-if (0) %mod(tdx,100)==0)
-	imagesc(reshape(y(1:end/3),obj.n));
-	title(tdx/nt);
-	drawnow
-toc
-tic
-end
-		end % switch dmethod
+		end % switch diffusion_scheme
 
 		% advect full step
-		switch (dmethod)
-		case {FDM,AID}
+		switch (obj.opt.advection_scheme)
+		case {'fmd','aid'}
 			% nothing to do, advection is done together with diffusion
-		case {SPECTRAL}
+		case {'spectral'}
 			%y = step_advect_fdm_implicit(t(tdx)+dt/2,y,dt);
 			y = step_advect_analytic(t(tdx)+dt/2,y,dt);
 		case {'krylov'}
@@ -142,133 +194,45 @@ end
 				y = (I-dt*Dy) \ y;
 			end
 		end
-		case {'implicit-euler-fourier'}
+		case {'implicit-euler-fourier','advection-diffusion'}
 			% nothing to do
-		end % switch dmethod
+		end % switch advection_scheme
+
+		% correct for round off
+		y(y<0 & y>-sqrt(eps)) = 0;
+
+		if (any(y<0))
+			% fall back to fdm diffusion, if solution is not smooth
+			%y = step_diffuse_fdm_implicit(t,y0,dt,y);
+			%warning('solution is not positive');
+			error('2 solution is not positive');
+			%fallback(tdx) = true;
+		end
 		% react half step
-		y = react(t(tdx)+dt/2,y,dt/2);
+		%y = react(t(tdx)+dt/2,y,dt/2);
+		y = obj.opt.reaction_scheme(t(tdx)+dt/2,dt/2,y, ...
+			@obj.dz_dt_coefficient_react_homogeneous, ...
+			@obj.dz_dt_coefficient_react_inhomogeneous);
+		%y = obj.opt.reaction_scheme(t(tdx),dt/2,y, @(t,z) obj.dz_dt_coefficient_react_homogeneous(t,z).* z + obj.dz_dt_coefficient_react_inhomogeneous(t,z));
+
 		% store result
 		if (t(tdx) >= to(tdxo))
 			yy(tdxo,:) = y;
 			tdxo = tdxo+1;
 		end % if t(tdx) > to(tdxo)
+
+		if (~isreal(y))
+			error('3 solution is not real');
+		end
+		if (any(y<0))
+			% fall back to fdm diffusion, if solution is not smooth
+			%y = step_diffuse_fdm_implicit(t,y0,dt,y);
+			%warning('solution is not positive');
+			error('solution is not positive');
+			%fallback(tdx) = true;
+		end
 	end % for tdx
 	yy(end,:) = y;
-
-	% TODO this should be better evolved as 3x3 system
-	function y = react(t,y,dt)
-		% y' = a*y + b
-		% y(t) = (exp(a*t)*(b/a + y0) - b/a);
-		% fixed point iteration
-		% this is better solved with NR, but this requires solution of a linear system
-		y0 = y;
-		kmax = 100;
-		kdx = 0;
-		o = ones(prod(obj.n),1);	
-		while (1)
-		kdx = kdx+1;
-		y_ = y;
-
-		% the analytic solution for constant coefficients is
-		% y = exp(a*dt)*y0 + (exp(a*dx) - 1)*b/a
-		% this solution breaks down for a = 0
-		% it is therefore better to approximate the second part as
-		% y ~ exp(a*dt)*y0 + dx*b
-		% computation time is decreased by approximating the first term as well
-		% y ~ exp(a*dt)*y0 + dx*b
-		% y ~ (1 + a*dt)*y0 + dx*b
-		% the trapezoidal rule does
-		% note that the convergence for some reason is not accelerated by aitkens d^2 method
-		method = 4;
-		switch (method)
-		case {1} % implicit euler
-		c  = obj.dz_dt_coefficient(t,(y+y0)/2);
-		a  = [c{1,1}.*o;
-		      c{2,1}.*o;
-		      c{3,1}.*o];
-		b  = [c{1,4}.*o;
-		      c{2,4}.*o;
-		      c{3,4}.*o];
-%		if (max(abs(a*dt))>1)
-%			warning([num2str(max(abs(a*dt))),'max(|a dt|)']);
-%		end
-		y = (y0 + dt*b)./(1 - 0.5*a*dt);
-			
-		case {2} % midpoint
-		c  = obj.dz_dt_coefficient(t,(y+y0)/2);
-		a  = [c{1,1}.*o;
-		      c{2,1}.*o;
-		      c{3,1}.*o];
-		b  = [c{1,4}.*o;
-		      c{2,4}.*o;
-		      c{3,4}.*o];
-		if (max(abs(a*dt))>1)
-			warning([num2str(max(abs(a*dt))),'max(|a dt|)']);
-		end
-		y = ((1 + 0.5*dt*a).*y0 + dt*b)./(1 - 0.5*a*dt);
-		%y = exp(dt*a).*y0 + dt*b;
-		case {3} % trapezoidal
-		c  = obj.dz_dt_coefficient(t,y);
-		c0  = obj.dz_dt_coefficient(t,y0);
-%		a = c(:,1);
-%		b = c(:,4);
-		%a0 = c0(:,1);
-		%b0 = c0(:,4);
-		a  = [c{1,1}.*o;
-		      c{2,1}.*o;
-		      c{3,1}.*o];
-		b  = [c{1,4}.*o;
-		      c{2,4}.*o;
-		      c{3,4}.*o];
-		a0  = [c0{1,1}.*o;
-		      c0{2,1}.*o;
-		      c0{3,1}.*o];
-		b0  = [c0{1,4}.*o;
-		      c0{2,4}.*o;
-		      c0{3,4}.*o];
-
-		y = ((1 + 0.5*dt*a0).*y0 + 0.5*dt*(b + b0))./(1 - 0.5*a*dt);
-		%y = exp(0.5*dt*(a0+a)).*y0 + 0.5*dt*(b + b0);
-		case {4}
-			% semi-analytic
-			c  = obj.dz_dt_coefficient(t,(y0+y)/2);
-		%	a  = c(:,1);
-		%	b  = c(:,4);
-		a  = [c{1,1}.*o;
-		      c{2,1}.*o;
-		      c{3,1}.*o];
-		b  = [c{1,4}.*o;
-		      c{2,4}.*o;
-		      c{3,4}.*o];
-			%y = exp(a*dt)*y0 + (exp(a*dx) - 1)*b/a
-			%y = exp(a*dt)*y0 + (exp(a*dx) - 1)*b/a
-			y = exp(a*dt).*y0 + dt*b;
-			%y = ((1 + 0.5*dt*a).*y0 + dt*b)./(1 - 0.5*a*dt);
-		case {5} % euler fw, explicit, no iteration
-			c  = obj.dz_dt_coefficient(t,(y0));
-			%a  = c(:,1);
-			%b  = c(:,4);
-			a  = [c{1,1}.*o;
-			      c{2,1}.*o;
-			      c{3,1}.*o];
-			b  = [c{1,4}.*o;
-			      c{2,4}.*o;
-			      c{3,4}.*o];
-			y = ((1 + dt*a).*y0 + dt*b);
-		end
-		
-		dy = rms(y-y_);
-		if (dy<tol)
-			break;
-		end
-		if (~isfinite(dy))
-			error(['isnan', num2str(kdx), ' ', num2str(dy)]);
-		end
-		if (kdx>kmax)
-			error(['no convergence ', num2str(kdx), ' ', num2str(dy)]);
-		end
-		end
-	end % react
 
 	function y = step_advect_analytic(t,y,dt)
 		c = obj.dz_dt_coefficient(t,y);
@@ -293,6 +257,26 @@ end
 
 		y = [b;w;h];
 	end % step_advect_analytic
+
+	function y = step_diffuse_fdm_positive(t,y,dt)
+		[b,w,h] = obj.extract1(y);
+		if (1 == obj.ndim)
+			b = ifft(obj.aux.fgb.*fft(b));
+			w = ifft(obj.aux.fgw.*fft(w));
+			h = ifft(obj.aux.fgh.*fft(h));
+		else
+			b = reshape(b,obj.n);
+			w = reshape(w,obj.n);
+			h = reshape(h,obj.n);
+			b = ifft2(obj.aux.fgb.*fft2(b));
+			w = ifft2(obj.aux.fgw.*fft2(w));
+			h = ifft2(obj.aux.fgh.*fft2(h));
+			b = b(:);
+			w = w(:);
+			h = h(:);
+		end
+		y = [b;w;h];
+	end
 
 	function y = step_diffuse_fdm_implicit(t,y,dt,y0)
 		if (nargin()<4)
@@ -360,19 +344,6 @@ end
 			%tic
 			%[y,ncflag] = cgs(A,y,[],sum(obj.n),l,u);
 			%toc
-			
-if (0)
-%mod(t+0.5,10) == 0)
-subplot(2,2,1)
-imagesc(reshape(y(1:end/3),obj.n))
-subplot(2,2,2)
-plot(resn)
-title(t)
-drawnow
-subplot(2,2,3)
-semilogy(bbar)
-%pause(0.1)
-end
 			if (ncflag)
 				error('pcg did not converge')
 			end
@@ -420,23 +391,18 @@ end
 
 	% note that the diffusion coefficient has to be constant in space
 	function y = step_diffuse_analytic(t,y,dt)
-		y0 = y;
 		c = obj.dz_dt_coefficient(t,y);
 		[b,w,h] = obj.extract1(y);
 
 		if (2 == obj.ndim)
-			b0 = reshape(b,obj.n);
-			w0 = reshape(w,obj.n);
+			b = reshape(b,obj.n);
+			w = reshape(w,obj.n);
 			h = reshape(h,obj.n);
 		end
 
-		b = diffuse_analytic(dt,b0,obj.L,c{1,3},false);
-		w = diffuse_analytic(dt,w0,obj.L,c{1,3},false);
-		h = diffuse_analytic(dt,h,obj.L,c{1,3},false);
-%clf
-%plot([b0(:,1),b(:,1)])
-%hold on
-%pause
+		b = diffuse_analytic(dt,b,obj.L,c{1,3});
+		w = diffuse_analytic(dt,w,obj.L,c{2,3});
+		h = diffuse_analytic(dt,h,obj.L,c{3,3});
 
 		if (2 == obj.ndim)
 			b = flat(b);
@@ -445,13 +411,6 @@ end
 		end % else of 1 == dim
 
 		y = [b;w;h];
-		if (any(y<sqrt(eps)))
-			% fall back to fdm diffusion, if solution is not smooth
-			%y = step_diffuse_fdm_implicit(t,y0,dt,y);
-			min(y)
-			warning('solution is not positive');
-			fallback(tdx) = true;
-		end
 %		y = max(y,0);
 	end % step_diffuse_analytic
 

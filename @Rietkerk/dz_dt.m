@@ -10,12 +10,12 @@
 function dz_dt = dz_dt(obj,t,z)
 	p = obj.p;
 	s = obj.pst;
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
+%%	if (size(z,2)>1)
+%		[b,w,h] = obj.extract2(z);
+%	else
 		[b,w,h] = obj.extract1(z);
-	end
-	if (~isvector(z))
+%	end
+	if (isvector(z))
 		b = b';
 		w = w';
 		h = h';
@@ -34,17 +34,17 @@ function dz_dt = dz_dt(obj,t,z)
 %	I = a.*h.*(b + p.kb.*p.w0)./(b+p.kb);
 	In = p.a.*obj.infiltration_enhancement(b).*h;
 
-	db_dt = p.cb.*U - p.db.*b + p.eb(1).*(obj.D2*b);
+	db_dt = p.cb.*U - p.db.*b + p.eb(1).*(obj.aux.D2*b);
 	% + (obj.D1c*eb).*(obj.D1c*b);
 
 	%db_dt = cb*U - db_.*b + eb_.*(D2*b);
-	dw_dt = In - U - p.rw.*w + p.ew(1).*(obj.D2*w);
+	dw_dt = In - U - p.rw.*w + p.ew(1).*(obj.aux.D2*w);
 
 	% constant velocity and diffusion
-	dh_dt = p.R - In + p.vh(1).*(obj.D1x*h) + p.eh(1)*(obj.D2x*h);
+	dh_dt = p.R - In + p.vh(1).*(obj.aux.D1x*h) + p.eh(1)*(obj.aux.D2x*h);
 
 	if (obj.ndim > 1)
-		dh_dt = dh_dt + p.vh(2).*(obj.D1y*h) + p.eh(2)*(obj.D2y*h);
+		dh_dt = dh_dt + p.vh(2).*(obj.aux.D1y*h) + p.eh(2)*(obj.aux.D2y*h);
 	end
 
 	% stack output

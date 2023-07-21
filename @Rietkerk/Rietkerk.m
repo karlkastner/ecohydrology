@@ -25,14 +25,14 @@ classdef Rietkerk < handle
 		% duration of model run
 		T
 		% number of output time steps
-		%nt
 		dt
 		% output time step
 		dto
-		% output time step
-		%dt
 		% physical parameters of the Rietkerk model
 		p   = struct();
+		% initial condition
+		z0
+		% mean of the physical parameters
 		pmu = struct(         ...
 			  'cb',	10    ... % g mm^-1 m^-2
 			... % range given as 0 to 0.5 by rietkerk
@@ -91,35 +91,27 @@ classdef Rietkerk < handle
 			 , 'Manning', 0 ... % c.f. caviedes 2022 
 		         , 'dzb_dx', 0 ...
 		); % pss
-		initial_condition = 'random';
-		% state of random number generator at start
-		rng = 0;
 		% derivative matrices
-		D1
-		D1x
-		D1y
-		D1c
-		D1xc
-		D1yc
-		D2
-		D2x
-		D2y
-		% identity matrix
-		I
-		% zero matrix
-		Z
+		aux      = struct('fgb',1,'fgw',1,'fgh',1);
 		% time stepping algorithm
-		solver   = @ode23;
-		solver_stationary = @picard;
 		odeopt   = struct();
-		symbolic = false;
-		innersolver = 2;
-		order    = 2;
-		zero_inertia = false;
-		opt = struct('gbm',false,'legacy_ic',false);
-		fx;
-		fy;
+		% boundary conditions
 		bc = {'circular','circular'};
+		opt = struct( 'gbm', false, ...
+                              'legacy_ic',false ...
+                             , 'reaction_scheme',  @step_react_ralston_exp ...
+			     , 'diffusion_scheme', 'fdm-positive' ...
+			     , 'advection_scheme', 'shift' ...
+			     , 'tol_implicit_iteration', 1e-4 ...
+			     , 'tol_pcg', 1e-5 ...
+			     , 'solver', 'solve_split' ...
+			     , 'solver_stationary', @picard ...
+			     , 'initial_condition', 'random' ...
+		             , 'rng',  0 ... % state of random number generator at start
+			     , 'zero_inertia', 'false' ...
+			     , 'order', 2 ...
+			     , 'symbolic', false ...
+		            ); % @ode23;
 	end % properties
 	methods
 		function obj = Rietkerk(varargin)
@@ -142,7 +134,15 @@ classdef Rietkerk < handle
 			%end
 		end
 		function dx = dx(obj)
-			dx = obj.L/obj.n;
+			dx = rvec(obj.L)./rvec(obj.n);
+		end
+		function [fx,fy,fr] = fourier_axis(obj)
+			if (obj.ndim == 1)
+				fx = fourier_axis(obj.L,obj.n);
+			else
+				[fx,fy,fr] = fourier_axis_2d(obj.L,obj.n);
+			end
+%rvec(obj.L)./rvec(obj.n);
 		end
 		function ndim = ndim(obj)
 			ndim = length(obj.n);

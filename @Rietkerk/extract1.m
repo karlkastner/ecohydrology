@@ -4,6 +4,12 @@
 %% extract biomass, soil water and surface water from the combined vector
 %
 function [b,w,h] = extract1(obj,z)
+	if (ndims(z)>1)
+		nt = size(z,1);
+	else
+		nt = 1;
+	end
+
 	n = prod(obj.n);
 	if (isvector(z))
 		b = z(1:n);	

@@ -1,6 +1,19 @@
 % Mon 31 May 20:20:46 CEST 2021
 % Karl Kästner, Berlin
 %
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+%
 %% run the Rietkerk model with parameters specified by varargin,
 %% or retrieve the saved results, when the model was already run
 function [t,y,rk,runtime] = run(obj,varargin)
@@ -22,9 +35,9 @@ function [t,y,rk,runtime] = run(obj,varargin)
             && ~(obj.loadfinal && exist(oname_final,'file')))
 		printf('Running %d\n',key);
 		% run model
-		y0 = rk.init();
+		rk.init();
 		timer = tic();
-		[t,y] = rk.solve(y0);
+		[t,y] = rk.solve();
 		runtime = toc(timer);
 		printf('Runtime %g\n',runtime);
 		% save disk space
