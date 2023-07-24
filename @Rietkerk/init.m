@@ -4,13 +4,11 @@
 %% initialize all variables
 %
 function init(obj)
-	dx      = obj.dx;
-	%obj.fx  = fourier_axis(obj.x);
-	%if (obj.ndim>1)
-	%obj.fy  = fourier_axis(obj.x(2));
-	%end
+
 	% initalize random number generator
-	rng(obj.opt.rng);
+	if (~isempty(obj.opt.rng))
+		rng(obj.opt.rng);
+	end
 
 	% initial condition
 	if (isnumeric(obj.opt.initial_condition))
@@ -50,28 +48,44 @@ function init(obj)
 		end
 
 		if (sd>0)
-			if (~obj.opt.gbm)
-				sd_averaged   = sd*sqrt(1/prod(dx)); %dx.^obj.ndim);
+			switch (obj.opt.heterogeneity_model)
+			case {'gamma'}
+				sd_averaged   = sd*sqrt(1./prod(obj.dx)); %dx.^obj.ndim);
 				obj.p.(field) = flat(obj.pmu.(field).*gamrnd(1/sd_averaged^2,sd_averaged^2,n));
-			else
+			case {'geometric-brownian-bridge'}
+				if (1 == obj.ndim)
 				% by definition, the moments of the (g)-bm-(bridge)
 				% do not depend on dx but only on L, so dx does
 				% not have to be rescaled
-				%
-				% TODO this is for 1d only
-				% TODO simply make log(mu_a) = bar log(x)
 				%		   
 				% determine parameter
 				[gmu,gsd] = gbm_moment2par(1,sd,obj.x(end)-obj.x(1));
 				% simulate geometric brownian bridge
 				z = gbm_bridge(obj.x,gmu,gsd,1,1);
-				obj.p.(field) = flat(obj.pmu.(field))*z;
+				obj.p.(field) = obj.pmu.(field)*z;
+				else
+					error('not yet implemented');
+				end
+			case {'geometric-ornstein-uhlenbeck'}
+				if (1 == obj.ndim)
+					error('not yet implemented');
+				else
+					% determine parameter
+					[lmu,lsd] = logn_moment2par(obj.pmu.(field),obj.pss.(field));
+					theta = obj.pssl.(field);
+					% TODO no magic numbers
+					m = obj.opt.heterogeneity_integration_order;
+					z = geometric_ar1_2d_grid_cell_averaged_generate(lmu,lsd,theta,obj.L,obj.n,m);
+					obj.p.(field) = z;
+				end
+			otherwise
+				error('not yet implemented');
 			end
 		else
 			obj.p.(field) = obj.pmu.(field);
 		end
 		else
-			% reuse prespecified value
+			% use prespecified value and do nothing
 			% TODO check size
 		end
 	end
@@ -108,18 +122,14 @@ function init(obj)
 	case {2}
 		if (obj.p.vh(1) ~= 0)
 			D1x  = derivative_matrix_1_1d(obj.n(1),obj.L(1),-sign(obj.p.vh(1)),obj.bc{2});
-			%obj.D1x = kron(D1x,speye(obj.n(2)));
 			obj.aux.D1x = kron(speye(obj.n(2)),D1x);
 		else
 			obj.aux.D1x = spzeros(prod(obj.n));
-			%parse(prod(obj.n));
 		end
 		if (obj.p.vh(2) ~= 0)
 			D1y  = derivative_matrix_1_1d(obj.n(2),obj.L(2),-sign(obj.p.vh(2)),obj.bc{2});
-			%obj.D1y = kron(speye(obj.n(1)),D1y);
 			obj.aux.D1y = kron(D1y,speye(obj.n(1)));
 		else
-			%obj.D1y = sparse(prod(obj.n));
 			obj.aux.D1y = spzeros(prod(obj.n));
 		end
 		obj.aux.D1xc = 0;
@@ -136,7 +146,6 @@ function init(obj)
 	obj.aux.Z = sparse(n,n);
 	obj.aux.I = speye(n);
 
-	% z0 = max(z0,1e-3);
 	obj.z0 = z0;
 
 	% sanity check

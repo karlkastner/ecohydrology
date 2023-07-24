@@ -39,6 +39,8 @@ function [t,y,rk,runtime] = run(obj,varargin)
 		timer = tic();
 		[t,y] = rk.solve();
 		runtime = toc(timer);
+		t = [];
+		y = [];
 		printf('Runtime %g\n',runtime);
 		% save disk space
 		y = single(y);
@@ -67,3 +69,4 @@ function [t,y,rk,runtime] = run(obj,varargin)
 		printf('Runtime %g\n',runtime);
 	end % else of if ~exist file
 end % run
+
