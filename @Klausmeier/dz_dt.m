@@ -1,4 +1,4 @@
-% Mon 31 May 20:20:46 CEST 2021
+% 2021-06-30 22:04:16.711272411 +0200
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -14,37 +14,20 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
-		[b,w,h] = obj.extract1(z);
-	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
+%% c.f. Klausmeier 1999
+function dz_dt = dz_dt(obj,t,z)
 
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
+	[b,w] = obj.extract1(z);
+
+	uptake = obj.p.g.*w.*b.*b;
+
+	db_dt = obj.p.c.*uptake     - obj.p.d.*b + obj.p.eb(1)*(obj.aux.D2x*b) + obj.noise.b;
+	dw_dt = obj.p.r - obj.p.l.*w - uptake   + obj.p.vw(1).*(obj.aux.D1x*w) + obj.p.ew(1)*(obj.aux.D2x*w) + obj.noise.w;
+	if (length(obj.nx)>1)
+		db_dt = db_dt + obj.p.eb(2)*(obj.aux.D2y*b);
+		dw_dt = dw_dt + obj.p.vw(2)*(obj.aux.D1y*w) + obj.p.ew(2)*(obj.aux.D2y*w);
 	end
 
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+	dz_dt = [db_dt; dw_dt];
+end
 

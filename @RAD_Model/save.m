@@ -14,37 +14,16 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
-		[b,w,h] = obj.extract1(z);
+function save(rad,t,y,out)
+	% clear auxiliary variables to save disk space
+	rad.aux = struct();
+	[oname,oname_final] = rad.filename();
+	% write model results to hard drive
+	save(oname,'-v7.3','t','y','rad','out');
+	if (length(t)>1)
+		t = t([1,end]);
+		y = [cvec(rad.z0),cvec(out.y_final)];
 	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
-
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
-	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+	save(oname_final,'-v7.3','t','y','rad','out');
+end
 

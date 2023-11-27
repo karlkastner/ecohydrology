@@ -1,4 +1,4 @@
-% Mon 31 May 20:20:46 CEST 2021
+% Mon  5 Jul 17:45:42 CEST 2021
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -14,37 +14,30 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-%% coefficients of the time-derivative of the Rietkerk-pde
+% extract individual variables from joint vector,
+% reshape into matrices, if required
 %
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
-		[b,w,h] = obj.extract1(z);
-	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
+function varargout = extract2(obj,z)
+	varargout = cell(1,obj.nvar);
+	[varargout{:}] = obj.extract1(z);
 
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
+	if (isvector(z))
+		if (obj.ndim>1)
+			for idx=1:obj.nvar
+				varargout{idx} = reshape(varargout{idx},obj.nx);
+			end
+			%b = reshape(b,obj.n);
+			%w = reshape(w,obj.n);
+			%h = reshape(h,obj.n);
+		end
 	else
-		db = obj.p.db(t);
+		nt = size(z,1);
+		for idx=1:obj.nvar
+			varargout{idx} = reshape(varargout{idx},[nt,rvec(obj.nx)]);
+		end
+%		b = reshape(b,[nt,obj.n(1),obj.n(2)]);
+%		w = reshape(w,[nt,obj.n(1),obj.n(2)]);
+%		h = reshape(h,[nt,obj.n(1),obj.n(2)]);
 	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+end
 

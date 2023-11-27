@@ -1,6 +1,19 @@
 % Mon 31 May 20:20:46 CEST 2021
 % Karl Kästner, Berlin
 %
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+%
 %% generate random initial state
 %
 function [y0] = random_state(obj,mode)
@@ -9,7 +22,7 @@ function [y0] = random_state(obj,mode)
 	end
 	switch (mode)
 	case {1}
-		o = ones(obj.n,1);
+		o = ones(obj.nx,1);
 		% note, this does not necessarily work, as the vegetated
 		% state can be zero or negative, when R is to small
 		% unvegetated state
@@ -21,16 +34,16 @@ function [y0] = random_state(obj,mode)
 		p.R = 2*p.R;
 		[b1,w1,h1] = obj.homogeneous_state(p,1);
 		y1 = [b1.*o;w1.*o;h1.*o];
-		p = rand(3*obj.n,1);
+		p = rand(3*obj.nx,1);
 		yr = p.*y0 + (1-p).*y1;
 %		y0 = [p(:,1).*b0 + (1-p(:,1)).*b1;
 %		      p(:,2).*w0 + (1-p(:,2)).*w1;
 %		      p(:,3).*h0 + (1-p(:,3)).*h1];
 	case {2}
 		p   = obj.pmu;
-		n = obj.n;
+		n = obj.nx;
 		if (1 == length(n)) n(2) = 1; end
-		p.R = p.R*gamrnd(1,1,n);
+		p.R = p.R.*gamrnd(1,1,prod(n),1);
 		[b1,w1,h1] = obj.homogeneous_state(p,1);
 		[b0,w0,h0] = obj.homogeneous_state(p,0);
 		fdx = b1<0;
@@ -42,7 +55,7 @@ function [y0] = random_state(obj,mode)
 		%y0  = max(0,y0);
 	case {3}
 		p   = obj.pmu;
-		n   = obj.n;
+		n   = obj.nx;
 		if (1 == length(n)) n(2) = 1; end
 		% unvegetated state
 		[b0,w0,h0] = obj.homogeneous_state(p,0);

@@ -16,7 +16,7 @@ breaklines=true
 \setlength{\cftsubsecnumwidth}{3.5em}
 
 \title{Manual for Package:
-ecohydrology\protect\\Revision 2:3M
+ecohydrology\protect\\Revision 7M
 }
 \author{Karl K\"astner}
 %\date{}
@@ -31,28 +31,28 @@ ecohydrology\protect\\Revision 2:3M
 % abstract
 
 
-\section{@Klausmeier}
-\subsection{Klausmeier}
+\section{@Dodorico}
+\subsection{Dodorico}
 ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
-\subsection{dy\_dt}
+\subsection{derive\_homogeneous\_state}
 ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
-\subsection{dy\_dx}
+\subsection{derive\_poles}
 ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
-\subsection{dy\_dx\_lin}
+\subsection{dz\_dt}
 ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
-\subsection{extract}
+\subsection{dz\_dt\_react}
 ${}$
 \begin{lstlisting}
 
@@ -62,7 +62,183 @@ ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
+\subsection{jacobian}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{poles}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_homogeneous\_state}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\section{@Eutrophication}
+\subsection{Eutrophication}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{dz\_dt\_react}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{homogeneous\_states}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{jacobian}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\section{@Klausmeier}
+\subsection{Klausmeier}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{dy\_dx}
+${}$
+\begin{lstlisting}
+ (c - nu)*D^3*b + (nu*c - c^2 - b^2 - 1)*D^2*b + (c + c*b^2 - c*d + d*nu)*D*b + (d*b^2 - r*b + d)*b
+
+\end{lstlisting}
+\subsection{dy\_dx\_lin}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{dz\_dt}
+${}$
+\begin{lstlisting}
+ c.f. Klausmeier 1999
+
+\end{lstlisting}
+\subsection{dz\_dt\_react}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{homogeneous\_state}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\section{@May1977}
+\subsection{May1977}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{dz\_dt\_react}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{homogeneous\_states}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{jacobian}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\section{@RAD\_Model}
+\subsection{RAD\_Model}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{downsample}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{dz\_dt}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{extract1}
+${}$
+\begin{lstlisting}
+ extract biomass, soil water and surface water from the combined vector
+
+\end{lstlisting}
+\subsection{extract2}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{filename}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{hash}
+${}$
+\begin{lstlisting}
+ has the model parameters for filename generation
+
+\end{lstlisting}
 \subsection{init}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{init\_advection\_diffusion\_matrix}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{init\_fourier\_matrices}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{load}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{make\_symbolic}
+${}$
+\begin{lstlisting}
+ make model parameters symbolic
+
+\end{lstlisting}
+\subsection{run}
+${}$
+\begin{lstlisting}
+ run the Rietkerk model with parameters specified by varargin,
+ or retrieve the saved results, when the model was already run
+
+\end{lstlisting}
+\subsection{save}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{solve}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{solve\_euler\_forward}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{solve\_split}
 ${}$
 \begin{lstlisting}
 
@@ -80,7 +256,17 @@ ${}$
  migration celerity of the pattern
 
 \end{lstlisting}
+\subsection{continue\_solve}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
 \subsection{critical\_rainfall\_depth}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{deflation\_matrix}
 ${}$
 \begin{lstlisting}
 
@@ -96,16 +282,39 @@ ${}$
  Rietkerk pde transformed to set of odes through assuming wave-equations
 
 \end{lstlisting}
-\subsection{dz\_dt}
+\subsection{downsample}
 ${}$
 \begin{lstlisting}
- time-derivative of the Rietkerk-pde
+
+\end{lstlisting}
+\subsection{downsample\_z}
+${}$
+\begin{lstlisting}
 
 \end{lstlisting}
 \subsection{dz\_dt\_coefficient}
 ${}$
 \begin{lstlisting}
+ coefficients of the time-derivative of the Rietkerk-pde
+
+\end{lstlisting}
+\subsection{dz\_dt\_coefficient\_react\_homogeneous}
+${}$
+\begin{lstlisting}
+ coefficients of the time-derivative of the Rietkerk-pde
+
+\end{lstlisting}
+\subsection{dz\_dt\_coefficient\_react\_inhomogeneous}
+${}$
+\begin{lstlisting}
+ coefficients of the time-derivative of the Rietkerk-pde
+
+\end{lstlisting}
+\subsection{dz\_dt\_react}
+${}$
+\begin{lstlisting}
  time-derivative of the Rietkerk-pde
+	if (size(z,2)>1)
 
 \end{lstlisting}
 \subsection{dz\_dx}
@@ -113,21 +322,10 @@ ${}$
 \begin{lstlisting}
 
 \end{lstlisting}
-\subsection{extract1}
-${}$
-\begin{lstlisting}
- extract biomass, soil water and surface water from the combined vector
-
-\end{lstlisting}
-\subsection{extract2}
-${}$
-\begin{lstlisting}
-
-\end{lstlisting}
 \subsection{growth\_rate}
 ${}$
 \begin{lstlisting}
- migration celerity of the pattern
+ growth rate of biomass of the pattern
 
 \end{lstlisting}
 \subsection{homogeneous\_state}
@@ -142,12 +340,6 @@ ${}$
  infiltration enhancement of the Rietkerk model
 
 \end{lstlisting}
-\subsection{init}
-${}$
-\begin{lstlisting}
- initialize all variables
-
-\end{lstlisting}
 \subsection{initial\_condition\_from\_central\_frequency}
 ${}$
 \begin{lstlisting}
@@ -155,17 +347,18 @@ ${}$
  initial condition with only this frequency
  for faster generation of asymptotic patterns
 
+ for 1D model setups
+
+\end{lstlisting}
+\subsection{initial\_condition\_periodic}
+${}$
+\begin{lstlisting}
+
 \end{lstlisting}
 \subsection{jacobian}
 ${}$
 \begin{lstlisting}
  jacobian of the Rietkerk model
-
-\end{lstlisting}
-\subsection{make\_symbolic}
-${}$
-\begin{lstlisting}
- make model parameters symbolic
 
 \end{lstlisting}
 \subsection{random\_state}
@@ -175,17 +368,6 @@ ${}$
 
 \end{lstlisting}
 \subsection{reaction\_matrix}
-${}$
-\begin{lstlisting}
-
-\end{lstlisting}
-\subsection{solve}
-${}$
-\begin{lstlisting}
- solve the Rietkerk model
-
-\end{lstlisting}
-\subsection{solve\_split}
 ${}$
 \begin{lstlisting}
 
@@ -215,23 +397,21 @@ ${}$
  database for Rietkerk model runs
 
 \end{lstlisting}
-\subsection{hash}
+\subsection{init}
 ${}$
 \begin{lstlisting}
- has the model parameters for filename generation
-
-\end{lstlisting}
-\subsection{run}
-${}$
-\begin{lstlisting}
- run the Rietkerk model with parameters specified by varargin,
- or retrieve the saved results, when the model was already run
 
 \end{lstlisting}
 \subsection{write\_table}
 ${}$
 \begin{lstlisting}
  write hashtable as human readable csv
+
+\end{lstlisting}
+\section{derivation}
+\subsection{klausmeier\_derive\_homogeneous\_state}
+${}$
+\begin{lstlisting}
 
 \end{lstlisting}
 \section{ecohydrology}
@@ -241,7 +421,27 @@ ${}$
  estimate migration celerity of a travelling wave
 
 \end{lstlisting}
+\subsection{mussel\_dz\_dt}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
 \section{test}
+\subsection{test\_dodorico}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_klausmeier}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
+\subsection{test\_klausmeier\_2d}
+${}$
+\begin{lstlisting}
+
+\end{lstlisting}
 \subsection{test\_rietkerk\_asymptote}
 ${}$
 \begin{lstlisting}

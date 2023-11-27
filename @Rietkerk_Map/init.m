@@ -1,4 +1,4 @@
-% Mon 31 May 20:20:46 CEST 2021
+% Sat 11 Dec 10:56:37 CET 2021
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -14,37 +14,20 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
+function init(obj)
+	% load hashtable
+	file_str = [obj.path_str,filesep,obj.map_str];
+	mkdir(obj.path_str);
+	if (0)
+	if (exist(file_str,'file'))
+		load(file_str,'map');
+		obj.map = map;
 	else
-		[b,w,h] = obj.extract1(z);
+		%map = containers.Map('KeyType','double');
+		% workaround for Matlab Bug
+		map = containers.Map(0,Rietkerk());
+		obj.map = map;
 	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
 	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
-
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
-	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+end % init
 

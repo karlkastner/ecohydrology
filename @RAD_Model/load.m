@@ -14,37 +14,23 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
+function [t,y,out] = load(obj)
+	out = struct('runtime',[]);
+	[oname,oname_final] = obj.filename();
+	if (~obj.opt.loadfinal)
+		disp(['Loading ',oname]);
+		load(oname);
 	else
-		[b,w,h] = obj.extract1(z);
+		disp(['Loading ',oname_final]);
+		load(oname_final);
+		% TODO hot fix
+		if (size(t,1) == 2 && size(t,2)>1)
+			t = t(1,[1,end])';
+		end
+		if (size(y,2) == 2)
+			y = y';
+		end
 	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
-
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
-	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+	obj = copyfields_deep(rad,obj);
+end % load
 

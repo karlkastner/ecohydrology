@@ -1,4 +1,4 @@
-% Mon 31 May 20:20:46 CEST 2021
+% Mon 23 Oct 17:11:21 CEST 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,38 +13,13 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
-		[b,w,h] = obj.extract1(z);
-	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
+function J  = jacobian(obj,t,z)
+	p = obj.pmu.p;
+	q = obj.pmu.q;
+	r = obj.pmu.r;
+	b = obj.pmu.b;
+	a = obj.pmu.a;
 	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
-
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
-	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+	J = (z.^(p - 1).*p.*r)./(z.^q + 1) - b - (z.^p.*z.^(q - 1).*q.*r)./(z.^q + 1).^2;
+end
 

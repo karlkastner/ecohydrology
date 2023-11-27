@@ -1,4 +1,4 @@
-% Mon 31 May 20:20:46 CEST 2021
+% Mon 16 Oct 09:40:37 CEST 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,38 +13,24 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-%% coefficients of the time-derivative of the Rietkerk-pde
-%
-function c = dz_dt_react_homogeneous(obj,t,z)
-	if (size(z,2)>1)
-		[b,w,h] = obj.extract2(z);
-	else
-		[b,w,h] = obj.extract1(z);
-	end
-	if (~isvector(z))
-		b=b';
-		w=w';
-		h=h';
-	end
-		
-	%n = prod(obj.n);
-	
-	% uptake of water by plants U_ = U/(wb)
-	U_ = obj.p.gb./(w + obj.p.kw);
+function [t,y,out] = solve_euler_forward()
+	out = struct('runtime',[]);
+	tic();
+	obj.init_advection_diffusion_matrix();
+	out.runtime(1) = toc();
+	tic();
 
-	% infiltration of water into soil In_ = I/h
-	In_ = obj.p.a.*obj.infiltration_enhancement(b);
-	
-	if (isnumeric(obj.p.db))
-		db = obj.p.db;
-	else
-		db = obj.p.db(t);
+	t = (0:obj.opt.dt:obj.T);
+	nt = length(t);
+	zz = zeros(prod(obj.nx),nt,obj.opt.output_class);
+	zz(:,1) = obj.z0;
+	for idx=2:nt
+		dz_dt = obj.dz_dt(t(idx-1),z);
+		z = z + obj.opt.dt*dz_dt;
+		zz(:,idx) = z;
 	end
-
-	% coefficients for c w h
-	c = [obj.p.cb.*U_.*w - db;
-	     -U_.*b - obj.p.rw;
-	     -In_];
-end % dz_dt_coefficient_react
+	out.y_final = z;
+	zz = zz.';
+	out.runtime(2) = runtime;
+end
 
