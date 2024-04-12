@@ -16,7 +16,7 @@
 %
 %% run the Rietkerk model with parameters specified by varargin,
 %% or retrieve the saved results, when the model was already run
-function [t,y,out] = run(obj,varargin)
+function [t,y,out] = run(obj) %varargin)
 	% unqiue identifier for parameter combinations
 	key = obj.hash();
 
@@ -36,14 +36,14 @@ function [t,y,out] = run(obj,varargin)
 		runtime_init = toc();
 		[t,y,out]   = obj.solve();
 		out.runtime = [runtime_init,out.runtime];
-		printf('Runtime %g\n',out.runtime);
+		printf('Runtime %g\n',out.runtime(end));
 		obj.p
 		obj.save(t,y,out);
 	else
 		% load results
 		printf('Loading %d\n',key);
 		[t,y,out] = obj.load();
-		printf('Runtime %g\n',out.runtime);
+		printf('Runtime %g\n',out.runtime(end));
 	end % else of if ~exist file
 end % run
 

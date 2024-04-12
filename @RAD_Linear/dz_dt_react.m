@@ -1,4 +1,4 @@
-% Mon  6 Dec 09:43:57 CET 2021
+% Sun 12 Nov 13:37:24 CET 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,18 +13,7 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-%% has the model parameters for filename generation
-%
-function [key_val, key_str] = hash(obj)
-	hashfield_C = obj.hashfield_C;
-	% set unused fields to default values
-%	f_C = fieldnames(obj.psdist);
-%	for idx=1:length(f_C)
-%		if (~strcmp(obj.psdist.(f_C{idx}),'geometric-ornstein-uhlenbeck'))
-%			obj.psl.(f_C{idx}) = 0;
-%		end
-%	end
-	[key_val, key_str] = hashobj(obj,hashfield_C);
-end % hash
+function dz_dt = dz_dt_react(obj,t,z)
+	dz_dt = 0;
+end
 

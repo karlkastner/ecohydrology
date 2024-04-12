@@ -5,12 +5,12 @@
 %% for faster generation of asymptotic patterns
 %%
 %% for 1D model setups
-function [b0,w0,h0] = initial_condition_from_central_frequency(obj,y)
-	if (isvector(y))
-		y = rvec(y);
+function [b0,w0,h0] = initial_condition_from_central_frequency(obj,z)
+	if (isvector(z))
+		z = rvec(z);
 	end
 	
-	[b,w,h]    = obj.extract1(y(end,:));
+	[b,w,h]    = obj.extract1(z(end,:));
 	
 	% determine dominant wave-length
 	S          = periodogram_bartlett(b-mean(b),obj.L,round(sqrt(obj.n)),obj.n); 
@@ -33,7 +33,7 @@ function [b0,w0,h0] = initial_condition_from_central_frequency(obj,y)
 		b0  = b+min(b);
 		w0  = repmat(mean(w),obj.n,1);
 		h0  = repmat(mean(h),obj.n,1);
-	%	y0 = double([b;h;w]);
+	%	z0 = double([b;h;w]);
 	end
 
 	% ensure positivity

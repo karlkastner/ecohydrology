@@ -7,7 +7,7 @@ function [Ax,Ay] = deflation_matrix(obj)
 	else
 		Ax = deflation_matrix(obj.n(1))';
 		if (obj.ndim>1)
-			Ay = deflation_matrix(obj.n(2));
+			Ay = downsampling_matrix(obj.n(2),'pairwise');
 		else
 			Ay = 1;
 		end

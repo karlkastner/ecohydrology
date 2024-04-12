@@ -1,4 +1,4 @@
-% Mon 16 Oct 09:40:37 CEST 2023
+% Sun 12 Nov 13:37:56 CET 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,24 +13,11 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function [t,y,out] = solve_euler_forward()
-	out = struct('runtime',[]);
-	tic();
-	obj.init_advection_diffusion_matrix();
-	out.runtime(1) = toc();
-	tic();
-
-	t = (0:obj.opt.dt:obj.T);
-	nt = length(t);
-	zz = zeros(prod(obj.nx),nt,obj.opt.output_class);
-	zz(:,1) = obj.z0;
-	for idx=2:nt
-		dz_dt = obj.dz_dt(t(idx-1),z);
-		z = z + obj.opt.dt*dz_dt;
-		zz(:,idx) = z;
-	end
-	out.y_final = z;
-	zz = zz.';
-	out.runtime(2) = runtime;
+function J  = jacobian_react(obj,t,z)
+	c = obj.p.c;
+	k = obj.p.k;
+	p = obj.p.p;
+	%J = 1 + (c.*p.*z.^(2*p - 1))./(z.^p + 1).^2 - (2*z)./k - (c.*p.*z.^p)./(z.*(z.^p + 1));
+	J =  diag(sparse(1 + (c*p*z.^(2*p - 1))./(z.^p + 1).^2 - (c*p*z.^(p - 1))./(z.^p + 1) - (2*z)./k));
 end
 

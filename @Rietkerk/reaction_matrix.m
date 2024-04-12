@@ -1,6 +1,6 @@
 % 2022-05-03 13:09:24.580982964 +0200
-function [A,ih] = reaction_matrix(obj,y)
-	[b,w,h] = obj.extract1(y);
+function [A,ih] = reaction_matrix(obj,z)
+	[b,w,h] = obj.extract1(z);
 	p = obj.p;
 	z = zeros(size(b));
 	o = ones(size(b));

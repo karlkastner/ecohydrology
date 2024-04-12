@@ -24,32 +24,34 @@ function obj = resample(obj,direction)
 	obj.aux = struct();
 	nx     = obj.nx;
 	f = fieldnames(obj.p);
-	% downsampling spatially distributed model coefficients
+	if (~isfield(obj.aux.R1down))
+		obj.init_resampling_matrices();
+	end
 	if (direction>0)
+		% downsampling spatially distributed model coefficients
 		if (any(mod(obj.nx,2)))
 			error('nx must be even');
 		end
-		D1 = downsampling_matrix(nx(1));
-		D2 = downsampling_matrix(nx(2));
-		obj.nx = nx/2;
+		[R1,R2t] = downsampling_matrix_2d(nx);
+		obj.nx   = nx/2;
 	else
+		[R1,R2t] = upsampling_matrix_2d(nx);
 		% upsampel, the upsampling matrix is just the transpose of the downsampling matrix
-		D1 = 2*downsampling_matrix(2*nx(1))';
-		D2 = 2*downsampling_matrix(2*nx(2))';
 		obj.nx = 2*nx;
 	end
 
 	for idx=1:length(f)
 		nn = numel(obj.p.(f{idx}));
 		if (nn == prod(nx))
-			obj.p.(f{idx}) = flat(D1*reshape(obj.p.(f{idx}),nx)*D2');
+			obj.p.(f{idx}) = flat(R1*reshape(obj.p.(f{idx}),nx)*R2t);
 		end
 	end % for idx
 	% downsampling the initial condition
 	z0_down = [];
 	for idx=1:obj.nvar
-		z0_down = [z0_down; flat(D1*z0_C{idx}*D2')];
+		z0_down = [z0_down; flat(R1*z0_C{idx}*R2t)];
 	end % for idx
 	obj.z0 = z0_down;
-end % downsample
+	obj.aux = struct();
+end % resample
 

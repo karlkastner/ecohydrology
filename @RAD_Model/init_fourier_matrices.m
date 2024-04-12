@@ -14,7 +14,8 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function [G] = init_fourier_matrices(obj)
-	dx  = obj.L./obj.nx;
+	dx = obj.L./obj.nx;
+
 	% set up advection-diffusion split-solution
 	rhs = zeros(prod(obj.nx),1);
 	rhs(1,1) = 1;
@@ -35,14 +36,18 @@ function [G] = init_fourier_matrices(obj)
 			e = obj.p.ex(idx);
 			v = obj.p.vx(idx);
 		else
-			e = [obj.p.ex(idx),obj.p.ey(idx)];
-			v = [obj.p.vx(idx),obj.p.vy(idx)];
+			e = [obj.p.ey(idx),obj.p.ex(idx)];
+			v = [obj.p.vy(idx),obj.p.vx(idx)];
 		end
+		if (0)
 		dt_max = 0.5*sum(dx.^2./e);
 		k1  = ceil(obj.opt.dt/dt_max);
 		k2  = ceil(sqrt(sum((rvec(v).*obj.opt.dt./rvec(dx)).^2)));
 		k   = max(k1,k2);
 		k   = max(1,k);
+		end
+		% TODO, why is convergence only second order with k = 1?
+		k   = 1;
 		%k(idx) = ceil(obj.opt.dt/dt_max)
 		%G{idx} = step_advection_diffusion_trapezoidal(obj.opt.dt/double(k(idx)),rhs,obj.nx,dx,double(v),double(e));
 		G{idx} = step_advection_diffusion_trapezoidal(obj.opt.dt/double(k),dx,obj.nx,rhs,double(v),double(e));

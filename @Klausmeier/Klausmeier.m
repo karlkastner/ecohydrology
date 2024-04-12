@@ -42,11 +42,11 @@ classdef Klausmeier < RAD_Model
 			for idx=1:length(field_C)
 				% standard deviation of parameters per unit distance
 				% (perturbation once during initialization)
-				obj.pss(f{idx}) = 0;
+				obj.pss.(field_C{idx}) = 0;
 				% spatial correlation lenght of parameters
-				obj.psl(f{idx}) = 0;
+				obj.psl.(field_C{idx}) = 0;
 				% stochastic model (probability distribution) of parameters
-				obj.psdist(f{idx}) = [];
+				obj.psdist.(field_C{idx}) = [];
 			end % for field_C
 			
 			opt.boundary_condition = {'circular','circular'};

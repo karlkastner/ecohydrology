@@ -16,10 +16,20 @@
 %
 %% generate random initial state
 %
-function [y0] = random_state(obj,mode)
+function [z0] = random_state(obj,mode,R0,mb0,sb0)
 	if (nargin()<2)
 		mode =2;
 	end
+	if (nargin()<2)
+		R0 = obj.pmu.R;
+	end
+	if (nargin()<3)
+		mb0 = 1;
+	end
+	if (nargin()<4)
+		sb0 = 1;
+	end
+
 	switch (mode)
 	case {1}
 		o = ones(obj.nx,1);
@@ -27,7 +37,7 @@ function [y0] = random_state(obj,mode)
 		% state can be zero or negative, when R is to small
 		% unvegetated state
 		[b0,w0,h0] = obj.homogeneous_state([],0);
-		y0 = [b0.*o;w0.*o;h0.*o];
+		z0 = [b0.*o;w0.*o;h0.*o];
 		% homogeneously vegetated state
 		p = obj.pmu;
 		% since it is oscillating between bare and
@@ -35,46 +45,51 @@ function [y0] = random_state(obj,mode)
 		[b1,w1,h1] = obj.homogeneous_state(p,1);
 		y1 = [b1.*o;w1.*o;h1.*o];
 		p = rand(3*obj.nx,1);
-		yr = p.*y0 + (1-p).*y1;
-%		y0 = [p(:,1).*b0 + (1-p(:,1)).*b1;
+		yr = p.*z0 + (1-p).*y1;
+%		z0 = [p(:,1).*b0 + (1-p(:,1)).*b1;
 %		      p(:,2).*w0 + (1-p(:,2)).*w1;
 %		      p(:,3).*h0 + (1-p(:,3)).*h1];
-	case {2}
-		p   = obj.pmu;
+	case {2} % randomly perturb rainfall
+		% this is very noise and
+		% the resulting pattern in the unperturbed case becomes labyrinthic
 		n = obj.nx;
 		if (1 == length(n)) n(2) = 1; end
-		p.R = p.R.*gamrnd(1,1,prod(n),1);
-		[b1,w1,h1] = obj.homogeneous_state(p,1);
-		[b0,w0,h0] = obj.homogeneous_state(p,0);
-		fdx = b1<0;
-		b1(fdx) = b0(fdx);
-		w1(fdx) = w0(fdx);
-		h1(fdx) = h0(fdx);
-		y1  = [flat(b1);flat(w1);flat(h1)];
-		y0  = y1;
-		%y0  = max(0,y0);
-	case {3}
 		p   = obj.pmu;
+		p.R        = gamrnd(R0*mb0,R0*sb0,prod(n),1);
+		% state pendendent on local water availablity
+		[b,w,h] = obj.homogeneous_state(p,2);
+		z0  = [flat(b);flat(w);flat(h)];
+	case {3} % randomly perturb biomass
+		p   = obj.pmu;
+		% the initial R must be 1 or higher, otherwise the biomass is decaying to zero
 		n   = obj.nx;
 		if (1 == length(n)) n(2) = 1; end
-		% unvegetated state
-		[b0,w0,h0] = obj.homogeneous_state(p,0);
-		%[b1,w1,h1] = obj.homogeneous_state(p,1);
-		%fdx = b1<0;
-		%b1(fdx) = b0(fdx);
-		%w1(fdx) = w0(fdx);
-		%h1(fdx) = h0(fdx);
-		%y1  = [b1;w1;h1];
-		%y0  = y1;
-		dx = obj.dx;
-		sd    = 1.0*sqrt(1/dx.^obj.ndim);
-		% small amount of biomass
-		rng(1);
-		b = b0 + 1e-2*gamrnd(1/sd^2,sd^2,n);
+		% vegetated state
+		p.R = R0;
+		[b0, w0, h0] = obj.homogeneous_state(p,1);
+		% small amount of biomass (square root of machine precission)
+		% interesting, sqrt(eps,single) ~ 3.45e-4 is too small 
+		b0_mu = mb0*b0;
+		% account for spatial resolution
+		b0_sd = sb0*b0*sqrt(1/prod(obj.dx));
+		[ap,bp] = gamma_moment2par(b0_mu,b0_sd);
+		b       = gamrnd(ap,bp,n);
 		w = w0.*ones(n);
 		h = h0.*ones(n);
-		y0 = [flat(b);flat(w);flat(h)];
-	end	
-
+		z0 = [flat(b);flat(w);flat(h)];
+	case {4} % bimodal distribution, unvegetated
+		n   = obj.nx;
+		if (1 == length(n)) n(2) = 1; end
+		[b0, w0, h0] = obj.homogeneous_state(obj.pmu,0);
+		% vegetated state
+		b1 = sb0*15;
+		p1 = 0.3/sb0;
+		b = repmat(b0,n);
+		w = repmat(w0,n);
+		h = repmat(h0,n);
+		id = randi(prod(n),round(p1*prod(n)),1);
+		b(id) = b1;
+		z0 = [flat(b);flat(w);flat(h)];
+	end
 end
 

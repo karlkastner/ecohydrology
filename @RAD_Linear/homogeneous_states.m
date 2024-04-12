@@ -1,4 +1,5 @@
-% Sun 12 Nov 13:37:56 CET 2023
+% Sun 12 Nov 13:41:52 CET 2023
+% TODO add trivial solution 0
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,10 +14,7 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function J  = jacobian(obj,t,z)
-	c = obj.pmu.c;
-	k = obj.pmu.k;
-	p = obj.pmu.p;
-	J = 1 + (c.*p.*z.^(2*p - 1))./(z.^p + 1).^2 - (2*z)./k - (c.*p.*z.^p)./(z.*(z.^p + 1));
+function [S0,lambda] = homogeneous_state(obj,p);
 end
+	
 

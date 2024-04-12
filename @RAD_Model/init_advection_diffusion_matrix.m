@@ -14,18 +14,20 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function init_advection_diffusion_matrix(obj)
+	% note, bc of circular condition, do not compute in matrix setup routines
+	dx = obj.L./obj.nx;
+
 	% first dimension
-	obj.aux.D1xl = derivative_matrix_1_1d(obj.nx(1),obj.L(1),+1,obj.boundary_condition{1},obj.boundary_condition{2});
-	obj.aux.D1xr = derivative_matrix_1_1d(obj.nx(1),obj.L(1),-1,obj.boundary_condition{1},obj.boundary_condition{2});
-	obj.aux.D2x = derivative_matrix_2_1d(obj.nx(1),obj.L(1),2,obj.boundary_condition{1},obj.boundary_condition{2});
+	obj.aux.D1xl = derivative_matrix_1_1d(obj.nx(1),dx(1),+1,obj.boundary_condition{1},obj.boundary_condition{2},true);
+	obj.aux.D1xr = derivative_matrix_1_1d(obj.nx(1),dx(1),-1,obj.boundary_condition{1},obj.boundary_condition{2},true);
+	obj.aux.D2x = derivative_matrix_2_1d(obj.nx(1),dx(1),2,obj.boundary_condition{1},obj.boundary_condition{2},true);
 
 	% second dimension
 	if (length(obj.nx) > 1)
 		%D1y = derivative_matrix_1_1d(obj.nx(2),obj.L(2),-sign(obj.pmu.vx(2)),obj.boundary_condition{1},obj.boundary_condition{2});
-		obj.aux.D1yl = derivative_matrix_1_1d(obj.nx(2),obj.L(2),+1,obj.boundary_condition{1},obj.boundary_condition{2});
-		obj.aux.D1yr = derivative_matrix_1_1d(obj.nx(2),obj.L(2),-1,obj.boundary_condition{1},obj.boundary_condition{2});
-		obj.aux.D2y = derivative_matrix_2_1d(obj.nx(2),obj.L(2),2,obj.boundary_condition{1},obj.boundary_condition{2});
-
+		obj.aux.D1yl = derivative_matrix_1_1d(obj.nx(2),dx(2),+1,obj.boundary_condition{1},obj.boundary_condition{2},true);
+		obj.aux.D1yr = derivative_matrix_1_1d(obj.nx(2),dx(2),-1,obj.boundary_condition{1},obj.boundary_condition{2},true);
+		obj.aux.D2y = derivative_matrix_2_1d(obj.nx(2),dx(2),2,obj.boundary_condition{1},obj.boundary_condition{2},true);
 		Ix = speye(obj.nx(1));
 		Iy = speye(obj.nx(2));
 		obj.aux.D1xr = kron(obj.aux.D1xr,Iy);
@@ -37,9 +39,12 @@ function init_advection_diffusion_matrix(obj)
 	end
 	% stack the matrix of the advection-diffusion part
 	n = prod(obj.nx);
-	obj.aux.AD = spzeros(obj.nvar*n,obj.nvar*n);
+	%obj.aux.AD = spzeros(obj.nvar*n,obj.nvar*n);
+	obj.aux.AD = [];
+	% spalloc(obj.nvar*n,obj.nvar*n,5*obj.nvar*n);
+	Z = spzeros(n,n);
 	% matrix entries for each state variable
-	for idx=1:length(obj.nvar)
+	for idx=1:obj.nvar
 		% first dimension
 		% diffusion part
 		ADi = obj.p.ex(idx)*obj.aux.D2x;
@@ -60,7 +65,18 @@ function init_advection_diffusion_matrix(obj)
 			end	
 		end
 		% write to matrix comprising of all dimensions
-		obj.aux.AD((idx-1)*n+1:idx*n,(idx-1)*n+1:idx*n) = ADi; 
+		% this is slow:
+		% obj.aux.AD((idx-1)*n+1:idx*n,(idx-1)*n+1:idx*n) = ADi; 
+		A = [];
+		for jdx=1:idx-1
+			A = [A,Z];
+		end
+		A = [A,ADi];
+		for jdx=idx+1:obj.nvar
+			A = [A,Z];
+		end
+		obj.aux.AD = [obj.aux.AD;A];
 	end
+	obj.aux.I = speye(obj.nvar*prod(obj.nx));
 end
 

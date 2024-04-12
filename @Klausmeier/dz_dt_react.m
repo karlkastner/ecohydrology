@@ -16,8 +16,8 @@
 function dz_dt = dz_dt_react(obj,t,z)
 	[b,w] = obj.extract1(z);
 	uptake = obj.p.g.*w.*b.*b;
-	db_dt = obj.p.c.*uptake     - obj.p.d.*b + obj.noise.b;
-	dw_dt = obj.p.r - obj.p.l.*w - uptake + obj.noise.w;
+	db_dt = obj.p.c.*uptake     - obj.p.d.*b; % + obj.noise.b;
+	dw_dt = obj.p.r - obj.p.l.*w - uptake; % + obj.noise.w;
 	dz_dt = [db_dt;dw_dt];
 end
 

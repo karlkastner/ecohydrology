@@ -13,31 +13,31 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function [t, zz, out] = solve(obj)
-
+function [to, zo, out] = solve(obj)
+	% convert solver to string for switch-case
 	if (isa(obj.opt.solver,'function_handle'))
 		solver_str = func2str(obj.opt.solver);
 	else
 		solver_str = obj.opt.solver;
 	end
 
+	%
+	% call solver
+	%
 	switch (solver_str)
-	case {'solve_split'}
-		[t,zz,out] = obj.solve_split();
-	case {'euler-forward'}
-		[t,y,out]=obj.solve_euler_forward();
+	case {'euler_forward','solve_implicit','solve_split', ...
+		'step_react_advect_diffuse_erk', ...
+		'step_integrating_factor'}
+		[to,zo,out] = obj.solve_step();
 	otherwise % use matlab build-in solver
-		out = struct('runtime',[]);
 		dto = min(obj.opt.dto,obj.T);
 		T = [0:dto:obj.T];
-		tic();
-		obj.init_advection_diffusion_matrix();
-		out.runtime(1) = toc();
-		tic();
+		timer=tic();
 		z0 = obj.opt.compute_class(obj.z0);
-		[t,zz] = obj.opt.solver(@obj.dz_dt, T, z0, obj.odeopt);
-		out.runtime(2) = toc();
-		out.y_final = zz(end,:);
-	end
-end
+		[to,zo] = obj.opt.solver(@obj.dz_dt, T, z0, obj.odeopt);
+		obj.out.runtime(2) = toc(timer);
+		obj.out.y_final = zz(end,:);
+	end % switch solver_str
+	out = obj.out;
+end % solve
 

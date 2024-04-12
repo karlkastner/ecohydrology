@@ -13,6 +13,8 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+%
+% function obj = init(obj)
 function obj = init(obj)
 	n = obj.nx;
 	L = obj.L;
@@ -32,8 +34,8 @@ function obj = init(obj)
 			sd = obj.pss.(field_C{idx});
 			sl = obj.psl.(field_C{idx});
 			dist = obj.psdist.(field_C{idx});
-			n = prod(obj.nx);
-			obj.p.(field_C{idx}) = generate(dist,mu,sd,sl,n);
+			%n = prod(obj.nx);
+			obj.p.(field_C{idx}) = generate(dist,mu,sd,sl,obj.nx);
 		end
 	end
 
@@ -43,18 +45,33 @@ function obj = init(obj)
 		for idx=1:obj.nvar
 			dist = obj.initial_condition.dist{idx};
 			mu = obj.initial_condition.mu(idx);
-			sd = obj.initial_condition.sd(idx);
-			sl = obj.initial_condition.sl(idx);
-			z0i = flat(generate(dist,mu,sd,sl,obj.nx));
-			if (isscalar(z0i))
-				z0i = z0i*ones(prod(obj.nx),1);
+			ic = obj.initial_condition
+			% random
+			if (~isempty(obj.initial_condition.sd))
+				sd = obj.initial_condition.sd(idx);
+				sl = obj.initial_condition.sl(idx);
+				z0i = flat(generate(dist,mu,sd,sl,obj.nx));
+				if (isscalar(z0i))
+					z0i = z0i*ones(prod(obj.nx),1);
+				end
+			elseif (isfield(obj.initial_condition,'fc') && ~isempty(obj.initial_condition.fc))
+				fc = obj.initial_condition.fc
+				c = obj.initial_condition.c(idx)
+				s = obj.initial_condition.s(idx)
+				% TODO 2D
+				z0i = mu + s*sin(2*pi*fc*cvec(obj.x)) + c*cos(2*pi*fc*cvec(obj.x));
 			end
 			z0 = [z0;z0i];
 		end
 		obj.z0 = z0;
-	else
+	elseif (isnumeric(obj.initial_condition))
 		obj.z0 = obj.initial_condition;
+	else
+		obj.z0 = eval(obj.initial_condition);
 	end
+
+	% initialize_solver
+	obj.init_solve();
 
 function x = generate(dist,mu,sd,sl,n)
 		dx = obj.dx;
@@ -64,7 +81,11 @@ function x = generate(dist,mu,sd,sl,n)
 		%      irrespective of number of time steps
 		sd = sd./sqrt(prod(dx));
 		if (isempty(dist)||0==sd)
+		if (0==sd)
 			x = mu;
+		else
+			error('when variance is not zero, a distribution has to be specified');
+		end
 		else
 		switch (dist)
 		case {'uniform'}
@@ -78,9 +99,9 @@ function x = generate(dist,mu,sd,sl,n)
 			% x = flat(mu.*gamrnd(1/sd^2,sd^2,n);
 		case {'lognormal'}
 			[a,b] = logn_moment2par(mu,sd);
-			x = logrnd(a,b,n,1);
+			x = lognrnd(a,b,prod(n),1);
 		case {'exp'}
-			x = exprnd(mu,n,1);
+			x = exprnd(mu,prod(n),1);
 		case {'geometric-brownian-bridge'}
 				if (1 == obj.ndim)
 				% by definition, the moments of the (g)-bm-(bridge)
@@ -97,7 +118,7 @@ function x = generate(dist,mu,sd,sl,n)
 				end
 		case {'geometric-ornstein-uhlenbeck'}
 			if (1 == obj.ndim)
-				error('1d ou not yet implemented');
+				error('1d not yet implemented');
 			else
 				% determine parameter
 				[lmu,lsd] = logn_moment2par(mu,sd);
@@ -105,6 +126,18 @@ function x = generate(dist,mu,sd,sl,n)
 				m = obj.opt.heterogeneity_integration_order;
 				x = geometric_ar1_2d_grid_cell_averaged_generate(lmu,lsd,theta,obj.L,obj.nx,m);
 				x = flat(x);
+			end
+		case {'geometric-pink'}
+			if (1 == obj.ndim)
+				error('1d not yet implemented');
+			else
+				% pink noise with unit variance
+				e = pink_noise_2d(n,L);
+				% rescale to desired mean and variance
+				[lmu,lsd] = logn_moment2par(mu,sd);
+				% transform to log-normal
+				e = exp(lmu+lsd*e);
+				x = flat(e);
 			end
 		otherwise
 			error('unimplemented distribution');

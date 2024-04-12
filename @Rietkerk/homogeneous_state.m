@@ -16,7 +16,7 @@
 %
 %% homogeneous (not necessarily stable) states of the Rietkerk system
 %
-function [b,w,h,J,v,e] = homogeneous_state(obj,p,state)
+function [b,w,h,J,v,e] = homogeneous_state(obj,p,state,outz)
 	if (nargin()<2||isempty(p))
 		p = obj.pmu;
 	end
@@ -63,6 +63,10 @@ function [b,w,h,J,v,e] = homogeneous_state(obj,p,state)
 	if (nargout()>3)
 		J = obj.jacobian(0,[b,w,h],false);
 		[v,e] = eig(J);
+	end
+	if (nargin()>3&&outz)
+		o = ones(prod(obj.nx),1);
+		b = [b.*o;w.*o;h.*o];
 	end
 end % homogeneous_state
 
