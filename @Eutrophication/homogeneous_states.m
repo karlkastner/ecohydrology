@@ -18,12 +18,15 @@
 %      0 = (a - b S)(1 + S^p) + r S^p
 %      0 = -b S^(p+1)  + (a+r) S^p - b S + a
 %      0 = -b (S0+c*cos(x/L))^(p+1)  + (a+r) (S0+c*cos(x/L))^p - b (S0 + c*cos(x/L)) + a - c*D/L^2*cos(x/L)
-function [S0,lambda] = homogenous_state(obj);
-	a = obj.pmu.a;
-	b = obj.pmu.b;
-	r = obj.pmu.r;
-	p = obj.pmu.p;
-	q = obj.pmu.q;
+function [S0,lambda] = homogenous_state(obj,par)
+	if (nargin()<2)
+		par = obj.pmu;
+	end
+	a = par.a;
+	b = par.b;
+	r = par.r;
+	p = par.p;
+	q = par.q;
 	% p cannot vary
        l = max([length(a),length(b),length(r)]);
 	m            = max(p+1,q+2);
