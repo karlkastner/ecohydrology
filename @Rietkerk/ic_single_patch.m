@@ -16,7 +16,7 @@
 %
 %% homogeneous (not necessarily stable) states of the Rietkerk system
 %
-function [z,b,w,h,J,v,e] = single_patch(obj)
+function [z,b,w,h,J,v,e] = single_patch(obj,bmax,sp)
 	[b0,w,h] = obj.homogeneous_state();
 	if (isscalar(w))
 		w = w*ones(obj.nx);
@@ -24,14 +24,17 @@ function [z,b,w,h,J,v,e] = single_patch(obj)
 	if (isscalar(h))
 		h = h*ones(obj.nx);
 	end
+	if (nargin()<2)
+		bmax = 20;
+	end
+	if (nargin()<3)
+		sp = 1;
+	end
 
 	L = obj.L;
 	[x,y] = obj.x;
 	%r = hypot(cvec(x)-L(1)/2,rvec(y)-L(2)/2);
-	% TODO no magic numbers
-	bmax = 20;
-	s    = 2;
-	b    = b0 + 20*normpdf(cvec(x),L(1)/2,s)*normpdf(rvec(y),L(2)/2,s)/normpdf(0,0,s)^2;
+	b    = b0 + bmax*normpdf(cvec(x),L(1)/2,sp)*normpdf(rvec(y),L(2)/2,sp)/normpdf(0,0,sp)^2;
 	z = [flat(b); flat(w); flat(h)];
 end
 
