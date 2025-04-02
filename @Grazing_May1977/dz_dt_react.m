@@ -1,4 +1,4 @@
-% Sun 12 Nov 13:37:56 CET 2023
+% Sun 12 Nov 13:37:24 CET 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,7 +13,18 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function J  = jacobian_react(obj,t,z)
-	J = 0;
+function dz_dt = dz_dt_react(obj,t,z)
+	if (isa(obj.p.k,'function_handle'))
+		k = obj.p.k(t);
+	else
+		k = obj.p.k;
+	end
+	if (isa(obj.p.c,'function_handle'))
+		c = obj.p.c(t);
+	else
+		c = obj.p.c;
+	end
+	
+	dz_dt = z.*(1 - z./obj.p.k) - c.*z.^obj.p.p./(1 + z.^obj.p.p);
 end
 

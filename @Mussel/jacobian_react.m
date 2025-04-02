@@ -1,20 +1,25 @@
-% 2022-07-05 17:30:32.178128206 +0200
-% c.f. koppel
-function dz_dt_mussel(obj,t,z)
+function J = jacobian_react(obj,z)
+	p = obj.pmu;
+
 	% e  : convergence rate
+	e = p.e;
 	% dm : mortality rate per biomass
+	dm = p.dm;
 	% km : saturation constant
+	km = p.km;
 	% Aup : algae density in upper water layer
+	Aup = p.Aup;
 	% f  : exchange rate between lower and upper layer
+	f = p.f;
 	% h  : height of lower layer
+	h = p.h;
 	% c  : consumption rate?
+	c = p.c;
 	% D  : diffusion rate
 	% V  : velocity
 
-	m = z(1:end/2);
-	a = z(end/2+1:end);
-
-	dm_dt = e*c*a*m - dm * km./(km + m).*m + d*(obj.D2x.*m);
-	da_dt = (aup - a)*f - c/h*a*m - v*(obj.D1x*a);
+	m = z(1);
+	a = z(2);
+	J = [a*c*e - (dm*km)/(km + m) + (dm*km*m)/(km + m)^2,         c*e*m
+                                       -(a*c)/h, - f - (c*m)/h];
 end
- 

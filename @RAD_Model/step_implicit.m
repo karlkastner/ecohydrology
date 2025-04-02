@@ -251,9 +251,7 @@ end
 	
 function x = mgmfun(x)
 	x = reshape(x,[],obj.nvar)';
-	%x0 = zeros(obj.nvar,prod(obj.nx));
 	x = obj.aux.mg_j.cycle1(x);
-	%x = obj.aux.mg_j.mldivide(x,x0);
 	x=flat(x');
 end
 

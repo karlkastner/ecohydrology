@@ -16,13 +16,13 @@
 %
 % spatially extended grazing model
 % c.f. May 1977, van Nes and Scheffer 2005
-classdef May1977 < RAD_Model
+classdef Grazing_May1977 < RAD_Model
 	properties
 	end
 	methods
 
-		function obj = May1977(varargin)
-			obj = obj.May1977_();
+		function obj = Grazing_May1977(varargin)
+			obj = obj.Grazing_May1977_();
 			if (~isempty(varargin) && isstruct(varargin{1}))
 				obj = copyfields_deep(varargin{1},obj);
 			else
@@ -31,7 +31,7 @@ classdef May1977 < RAD_Model
 			    end
 			end
 		end
-		function obj = May1977_(obj)
+		function obj = Grazing_May1977_(obj)
 			obj.nvar = 1;
 %			obj.pmu.a = 0.5;
 %			obj.pmu.b = 1;
@@ -68,14 +68,11 @@ classdef May1977 < RAD_Model
 			obj.opt.base_str  = 'may1977-';
 			obj.opt.loadfinal = false;
 			obj.opt.compute_class = @double;
-			obj.opt.output_class = 'half';
+			obj.opt.output_class = @single;
+			obj.opt.solver = 'solve_split';
+			obj.opt.inner_solver = 'step_advect_diffuse_spectral';
+			obj.opt.isreal = true;
 
-			obj.hashfield_C   = {  'L','dx','T','opt.dt','opt.dto' ...
-					     , 'pmu','pss','psl' ...
-					     , 'opt.rng' ...
-					     , 'opt.solver' ...
-					     , 'boundary_condition','initial_condition' ...
-					    };
-		end
-	end
-end % May1977
+		end % Grazing_May1977_
+	end % methods
+end % Grazing_May1977

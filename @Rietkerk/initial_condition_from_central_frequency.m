@@ -13,7 +13,7 @@ function [b0,w0,h0] = initial_condition_from_central_frequency(obj,z)
 	[b,w,h]    = obj.extract1(z(end,:));
 	
 	% determine dominant wave-length
-	S          = periodogram_bartlett(b-mean(b),obj.L,round(sqrt(obj.n)),obj.n); 
+	S          = periodogram_bartlett(b-mean(b),obj.L,round(sqrt(obj.nx)),obj.nx); 
 	[Smax,mdx] = max(S);
 	fx = fourier_axis(obj.x);
 	fc = fx(mdx);
@@ -21,7 +21,7 @@ function [b0,w0,h0] = initial_condition_from_central_frequency(obj,z)
 	% round to nearest integer
 	fc = round(obj.L*fc)/obj.L;
 
-	if (~obj.opt.legacy_ic)
+	if (0) %~obj.opt.legacy_ic)
 
 	[b0,w0,h0] = obj.initial_condition_periodic(fc);
 
@@ -31,8 +31,8 @@ function [b0,w0,h0] = initial_condition_from_central_frequency(obj,z)
 		b = mean(b) + s*cos(2*pi*fc*cvec(obj.x));
 		% ensure positivity
 		b0  = b+min(b);
-		w0  = repmat(mean(w),obj.n,1);
-		h0  = repmat(mean(h),obj.n,1);
+		w0  = repmat(mean(w),obj.nx,1);
+		h0  = repmat(mean(h),obj.nx,1);
 	%	z0 = double([b;h;w]);
 	end
 

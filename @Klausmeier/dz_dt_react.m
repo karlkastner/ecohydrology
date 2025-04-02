@@ -13,11 +13,24 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function dz_dt = dz_dt_react(obj,t,z)
-	[b,w] = obj.extract1(z);
+function [dz_dt] = dz_dt_react(obj, t, z)
+	[b, w] = obj.extract1(z);
+	if (isa(obj.p.r,'function_handle'))
+		r = obj.p.r(t);
+	else
+		r = obj.p.r;
+		% *(1 + 0.1*randn(obj.nx,1));
+	end
+
 	uptake = obj.p.g.*w.*b.*b;
-	db_dt = obj.p.c.*uptake     - obj.p.d.*b; % + obj.noise.b;
-	dw_dt = obj.p.r - obj.p.l.*w - uptake; % + obj.noise.w;
-	dz_dt = [db_dt;dw_dt];
+	db_dt = obj.p.c.*uptake - obj.p.d.*b;
+	% obj.noise.b;
+	% db_dt = db_dt + 1e-1*b.*randn(size(b));
+	dw_dt = r - obj.p.l.*w - uptake;
+	% + obj.noise.w;
+	dz_dt = [db_dt; dw_dt];
+
 end
+
+
 

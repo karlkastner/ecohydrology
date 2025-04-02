@@ -43,7 +43,9 @@ function [t,y,out] = run(obj) %varargin)
 		% load results
 		printf('Loading %d\n',key);
 		[t,y,out] = obj.load();
-		printf('Runtime %g\n',out.runtime(end));
+		if (~isempty(out.runtime))
+			printf('Runtime %g\n',out.runtime(end));
+		end
 	end % else of if ~exist file
 end % run
 

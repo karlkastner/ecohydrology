@@ -27,12 +27,13 @@ classdef Klausmeier < RAD_Model
 			obj.pmu = struct(... 
 				 'c',   1          ... % conversion rate of water to biomass (J in Klausmeier)
 				,'d',  0.045       ... % death rate of biomass (M in klausmeier)	
-				,'eb', 1*[1,1]     ... % diffusion of biomass (D in klausmeier)
-				,'ew', [0,100]     ... % diffusion of water (not in klausmeier)
 				,'g',   1          ... % water uptake (R in klausmeier)
 				,'l',   1          ... % evaporation (L in clausmeier)
 				,'r',   0.077      ... % precipitation (A in Klausmeier)
-				,'vw', 182.5*[1,0] ... % water runoff velocity
+				,'ex', [1,0]	   ... % diffusion of biomass (D) and water (0 in klausmeier)
+				,'ey', [1,0]	   ... %
+				,'vx', [0,182.5]   ... % advection of biomass (0) and water
+				,'vy', [0,0]   ... % advection of biomass (0) and water
 			);
 
 			obj.pss = struct();
@@ -45,29 +46,23 @@ classdef Klausmeier < RAD_Model
 				obj.pss.(field_C{idx}) = 0;
 				% spatial correlation lenght of parameters
 				obj.psl.(field_C{idx}) = 0;
+				obj.pst.(field_C{idx}) = 0;
 				% stochastic model (probability distribution) of parameters
 				obj.psdist.(field_C{idx}) = [];
 			end % for field_C
 			
-			opt.boundary_condition = {'circular','circular'};
-			opt.initial_condition = 'random';
+			obj.opt.boundary_condition = {'circular','circular'};
+			obj.opt.initial_condition = 'random';
 
-			obj.opt = struct('solver',@ode23 ...
-				     ,'dt', 1 ...
-				     ,'dto', 100 ...
-				     ,'rng', 0 ...
-				     , 'path_str', './' ...
-				     , 'base_str', 'klausmeier-' ...
-				     , 'loadfinal', false ...
-				    ); % opt
+			%obj.obj.opt = struct('solver',@ode23 ...
+			obj.opt.dt = '1';
+		        obj.opt.dto = 100;
+		        obj.opt.rng = 0;
+		        obj.opt.path_str = './';
+		        obj.opt.base_str = 'klausmeier-';
+		        obj.opt.loadfinal = false;
+		        obj.opt.isreal = true;
 	
-			obj.hashfield_C  = { 'L','dx','T','dt','dto' ...
-					,'pmu','pss','psl' ...
-					, 'opt.rng' ...
-					, 'opt.solver' ...
-					, 'initial_condition' ...
-					, 'boundary_condition' ...
-					}; % hashfield_C
 		end % klausmeier_
 		function obj = Klausmeier(varargin)
 			obj = obj.Klausmeier_();

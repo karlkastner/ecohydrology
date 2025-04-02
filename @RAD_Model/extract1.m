@@ -23,11 +23,16 @@ function varargout = extract1(obj,z)
 		nt = 1;
 	end
 
-	k = obj.nvar;
 	n = prod(obj.nx);
 	if (isvector(z))
+		if (length(z) == obj.nvar)
+		for idx=1:obj.nvar
+			varargout{idx} = z(idx);
+		end
+		else	
 		for idx=1:obj.nvar
 			varargout{idx} = z(1+(idx-1)*n:idx*n);
+		end
 		end
 		%b = z(1:n);	
 		%w = z(n+1:2*n);

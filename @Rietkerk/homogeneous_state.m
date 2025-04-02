@@ -16,11 +16,11 @@
 %
 %% homogeneous (not necessarily stable) states of the Rietkerk system
 %
-function [b,w,h,J,v,e] = homogeneous_state(obj,p,state,outz)
-	if (nargin()<2||isempty(p))
+function [b,w,h,J,v,e] = homogeneous_state(obj,t,p,state,outz)
+	if (nargin()<3||isempty(p))
 		p = obj.pmu;
 	end
-	if (nargin()<3)
+	if (nargin()<4)
 		state = 2;
 	end
 	if (isnumeric(p.db))
@@ -28,43 +28,48 @@ function [b,w,h,J,v,e] = homogeneous_state(obj,p,state,outz)
 	else
 		db = p.db(0);
 	end
+	if (isa(p.R,'function_handle'))
+		R = p.R(t);
+	else
+		R = p.R;
+	end
 	switch(state)
 	case{0}
 		% unvegetated
-       	 	w = p.R./p.rw;
-		h = p.R./(p.a.*p.w0);
+       	 	w = R./p.rw;
+		h = R./(p.a.*p.w0);
 		b = zeros(size(w));
 	case{1}
-		% state 1, vegetated (when R sufficiently large),
-		%          otherwise biomass is negative
-		b = p.cb./db.*(p.R.*p.cb.*p.gb - db.*(p.R + p.kw.*p.rw)) ...
+		% vegetated (when R sufficiently large),
+		% otherwise biomass is negative
+		b = p.cb./db.*(R.*p.cb.*p.gb - db.*(R + p.kw.*p.rw)) ...
 			         ./(p.cb.*p.gb - db);
-		w = -(db.*p.kw)./(db - p.cb.*p.gb).*ones(size(p.R));
-		h =  p.R./p.a.*(p.R.*p.cb.*db  ...
-                           - p.R.*p.cb.^2.*p.gb  ...
+		w = -(db.*p.kw)./(db - p.cb.*p.gb).*ones(size(R));
+		h =  R./p.a.*(R.*p.cb.*db  ...
+                           - R.*p.cb.^2.*p.gb  ...
                            + db.^2.*p.kb  ...
                            - p.cb.*db.*p.gb.*p.kb  ...
                            + p.cb.*db.*p.kw.*p.rw) ...
-		     ./ (db.^2.*p.kb.*p.w0 - p.R.*p.cb.^2.*p.gb  ...
-                         + p.R.*p.cb.*db + p.cb.*db.*p.kw.*p.rw  ...
+		     ./ (db.^2.*p.kb.*p.w0 - R.*p.cb.^2.*p.gb  ...
+                         + R.*p.cb.*db + p.cb.*db.*p.kw.*p.rw  ...
                          - p.cb.*db.*p.gb.*p.kb.*p.w0);	
 	case {2}
 		% state dependent on (local) water availability
 		Rc         = obj.critical_rainfall_depth(p);
-		[b,w,h]    = obj.homogeneous_state(p,0);
-		[b1,w1,h1] = obj.homogeneous_state(p,1);
-		fdx     = p.R > Rc;
+		[b,w,h]    = obj.homogeneous_state(0,p,0);
+		[b1,w1,h1] = obj.homogeneous_state(0,p,1);
+		fdx     = R > Rc;
 		b(fdx)  = b1(fdx);
 		w(fdx)  = w1(fdx);
 		h(fdx)  = h1(fdx);
 	otherwise
 		error('option unavailable');
 	end % state
-	if (nargout()>3)
+	if (nargout()>4)
 		J = obj.jacobian(0,[b,w,h],false);
 		[v,e] = eig(J);
 	end
-	if (nargin()>3&&outz)
+	if (nargin()>4&&outz)
 		o = ones(prod(obj.nx),1);
 		b = [b.*o;w.*o;h.*o];
 	end

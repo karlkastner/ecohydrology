@@ -14,10 +14,13 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function [S0,lambda] = homogeneous_state(obj,p);
-	c = obj.pmu.c;
-	k = obj.pmu.k;
-	p = obj.pmu.p;
+function [S0,lambda] = homogeneous_state(obj,t,p_);
+	if (nargin()<3)
+		p_ = obj.pmu;
+	end
+	c = p_.c;
+	k = p_.k;
+	p = p_.p;
 	% p cannot vary
         l = max([length(c),length(k)]);
 	m            = p+2;
@@ -25,15 +28,18 @@ function [S0,lambda] = homogeneous_state(obj,p);
 	if (issym(k) || issym(c))
 		z=sym(z)
 	end
+	if (isa(c,'function_handle'))
+		c = c(t);
+	end
 
 	if (~issym(k))
-		k = cvec(k)
+		k = cvec(k);
 	end
 	if (~issym(c))
-		c = cvec(c)
+		c = cvec(c);
 	end
 	if (~issym(p))
-		p = cvec(p)
+		p = cvec(p);
 	end
 
 	z(:,1)   =  k;

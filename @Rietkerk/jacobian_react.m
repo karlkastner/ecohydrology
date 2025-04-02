@@ -40,7 +40,8 @@ function [J] = jacobian_react(obj,t,z,r,outmode,tflag)
 	switch (outmode)
 	case {0} % output as matrix
 	if (~issym(z))
-	nn = prod(obj.nx);
+	%nn = prod(obj.nx);
+	nn = numel(b);
 	Z = spalloc(nn,nn,0);
 	J = [  [diag(sparse(p.cb*dU_db - p.db)),  diag(sparse(p.cb*dU_dw)),     Z];
 	       [diag(sparse(- dU_db - dI_db)),  diag(sparse(-dU_dw - p.rw)), diag(sparse(dI_dh))];

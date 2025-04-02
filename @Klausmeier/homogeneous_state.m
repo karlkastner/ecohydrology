@@ -13,30 +13,46 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function [b0,w0,J,e,v] = homogeneous_state(obj,p)
+function [b0,w0,J,e,v] = homogeneous_state(obj,p,id)
 %	r = obj.r;
 %	d = obj.d;
 %	b0 = [
 %	                               0,                                              
 %	 (r + (r^2 - 4*d^2)^(1/2))/(2*d),                                                
 %	 (r - (r^2 - 4*d^2)^(1/2))/(2*d) ];
-	if (nargin()<2)
+	if (nargin()<2||isempty(p))
 		p = obj.pmu;
 	end
+	if (nargin()<3)
+		id = 1;
+	end
+
 	g = p.g;
 	l = p.l;
 	d = p.d;
 	c = p.c;
 	r = p.r;
 
-	b0 = [ ((-g*(- g*c^2*r^2 + 4*l*d^2))^(1/2) + c*g*r)/(2*d*g)
-	      -((-g*(- g*c^2*r^2 + 4*l*d^2))^(1/2) - c*g*r)/(2*d*g)];
-	w0 = d./(b0*c*g);
+%	b0 = [ ((-g*(- g*c^2*r^2 + 4*l*d^2))^(1/2) + c*g*r)/(2*d*g)
+%	      -((-g*(- g*c^2*r^2 + 4*l*d^2))^(1/2) - c*g*r)/(2*d*g)];
+%	w0 = d./(b0*c*g);
 
-	for idx=1:2
-	J(:,:,idx) = jacobian(b0(idx),w0(idx));
-	[v(:,:,1),e_] = eig(J(:,:,idx));
-	e(:,idx) =diag(e_);
+	switch (id)
+	case {0}
+                     b0 = 0;
+                     w0 = r/l;
+	case {1}
+		     b0 = ((c*r)/2 + (-(- g*c^2*r^2 + 4*l*d^2)/g)^(1/2)/2)/d;
+		     w0 = (c*r - (-(- g*c^2*r^2 + 4*l*d^2)/g)^(1/2))/(2*c*l);
+	case {2}
+		b0 = ((c*r)/2 - (-(- g*c^2*r^2 + 4*l*d^2)/g)^(1/2)/2)/d;
+		w0 = (c*r + (-(- g*c^2*r^2 + 4*l*d^2)/g)^(1/2))/(2*c*l);
+	end
+
+	for idx=1:1
+		J(:,:,idx) = jacobian(b0(idx),w0(idx));
+		[v(:,:,1),e_] = eig(J(:,:,idx));
+		e(:,idx) =diag(e_);
 	end
 function J = jacobian(b,w)
 	J = [2*b*c*g*w - d,     b^2*c*g; 

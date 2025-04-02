@@ -20,7 +20,7 @@ function init_advection_diffusion_matrix(obj)
 	% first dimension
 	obj.aux.D1xl = derivative_matrix_1_1d(obj.nx(1),dx(1),+1,obj.boundary_condition{1},obj.boundary_condition{2},true);
 	obj.aux.D1xr = derivative_matrix_1_1d(obj.nx(1),dx(1),-1,obj.boundary_condition{1},obj.boundary_condition{2},true);
-	obj.aux.D2x = derivative_matrix_2_1d(obj.nx(1),dx(1),2,obj.boundary_condition{1},obj.boundary_condition{2},true);
+	obj.aux.D2x  = derivative_matrix_2_1d(obj.nx(1),dx(1),2,obj.boundary_condition{1},obj.boundary_condition{2},true);
 
 	% second dimension
 	if (length(obj.nx) > 1)

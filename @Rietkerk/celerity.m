@@ -18,7 +18,10 @@
 %
 % TODO result is awry when pattern is noisy, upwinding necessary ?
 %
-function [c,cme] = celerity(obj,z)
+function [c,cme] = celerity(obj,z,individual)
+	if (nargin()<3)
+		individual = 0;
+	end
 	if (~isvector(z))
 		nt    = size(z,1);
 	else
@@ -27,6 +30,10 @@ function [c,cme] = celerity(obj,z)
 	if (isvector(z))
 		z = cvec(z);
 	end
+	if (~isfield(obj.aux,'AD'))
+		obj.init_advection_diffusion_matrix();
+	end
+	z = double(z);
 	dz_dt = obj.dz_dt([],z);
 	% interestingly, the upwinding seems to be more accurate than
 	% central differences, maybe bc upwiding is also used in dz_dt?
@@ -45,13 +52,30 @@ function [c,cme] = celerity(obj,z)
 	
 	c   = zeros(nt,obj.ndim);
 	cme = zeros(nt,obj.ndim);
+	if (~individual)
 	for idx=1:nt
-		c(idx,1)   = dz_dx(:,idx) \ dz_dt(:,idx);
 		cme(idx,1) = median(dz_dt(:,idx)./dz_dx(:,idx));
-		if (obj.ndim>1)
-		c(idx,2)   = dz_dy(:,idx) \ dz_dt(:,idx);
+		if (obj.ndim==1)
+		c(idx,1)   = dz_dx(:,idx) \ dz_dt(:,idx);
+		else
+		c(idx,1:2)   = [dz_dx(:,idx),dz_dy(:,idx)] \ dz_dt(:,idx);
 		cme(idx,2) = median(dz_dt(:,idx)./dz_dy(:,idx));
 		end
+	end
+	else
+	nn = prod(obj.nx);
+	for idx=1:nt
+		for jdx=1:obj.nvar
+		if (obj.ndim==1)
+		c(idx,1,jdx)   = dz_dx(1+(jdx-1)*nn:jdx*nn,idx) \ dz_dt(1+(jdx-1)*nn:jdx*nn,idx);
+		else
+		c(idx,1:2,jdx)   = [dz_dx(1+(jdx-1)*nn:jdx*nn,idx) dz_dy(1+(jdx-1)*nn:jdx*nn,idx)] \ dz_dt(1+(jdx-1)*nn:jdx*nn,idx);
+		end
+		%cme(idx,1) = median(dz_dt(:,idx)./dz_dx(:,idx));
+		%c(idx,2)   = dz_dy(:,idx) \ dz_dt(:,idx);
+		%cme(idx,2) = median(dz_dt(:,idx)./dz_dy(:,idx));
+		end
+	end
 	end
 end
 

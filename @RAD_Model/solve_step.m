@@ -1,4 +1,3 @@
-% Mon  2 May 14:18:38 CEST 2022
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -14,33 +13,32 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function [to,zo,out] = solve_step(obj)
+	T = obj.T;
+	if (isscalar(T))
+		T = [0,T];
+	end
+
 	% initial time
-	% TODO allow for restart
-	t = 0;
+	t = T(1);
 	% initial time step
-	dt  = min(obj.opt.dt,obj.T);
+	dt  = min(obj.opt.dt,T(2));
 	% output time step
-	dto = min(max(dt,obj.opt.dto),obj.T);
-	%tt  = (0:dt:obj.T);
-	to  = (0:dto:obj.T);
-	no = length(to);
-	nt = no;
+	% note that the output time step will vary when output is set to be
+	% written when the state variable exceeds the maximum relative change
+	if (~isempty(obj.opt.dto))
+		dto = min(max(dt,obj.opt.dto),T(2)-T(1));
+	else
+		dto = T(2)-T(1);
+	end
+	to  = (T(1):dto:T(2));
+	no  = length(to);
+	nt  = no;
 
 	obj.out.runtime     = zeros(1,no);
 	obj.out.rmse        = zeros(1,no);
 	obj.out.n_step      = zeros(1,no);
 	obj.out.esum        = zeros(1,no);
 	obj.out.dt          = zeros(1,no);
-	% allocate aux output for implicit solver
-%	if (strcmp(obj.opt.solver,'solve_implicit'))
-		%obj.out.innersteps  = zeros(nt,1);
-		%obj.out.exitflag    = zeros(nt,1);
-		%obj.out.exitflag2   = {[NaN,NaN]};
-		%obj.out.innersteps2 = {[NaN,NaN]};
-		%obj.out.fs  = zeros(nt,1);
-		%obj.out.a_line_search = [];
-		%obj.out.flag2 = {};
-%	end
 
 	% circling counter for adaptive error control
 	if (strcmp(obj.opt.solver,'solve_implicit'))
@@ -57,17 +55,23 @@ function [to,zo,out] = solve_step(obj)
 	end
 	cc  = (1:nc);
 
-	% allocate memory for output
-	% value at last 3 time steps stored for error control
+	% allocate memory for current state variable, overwritten every nc time steps
+	% keep last nc time steps stored for error control
 	zz = zeros(obj.nvar*prod(obj.nx),nc,func2str(obj.opt.compute_class));
 	tt = zeros(1,nc);
 	
-	% for output
+	% state variable at output times
 	zo = zeros_man(no,obj.nvar*prod(obj.nx),func2str(obj.opt.output_class));
+
 	% initial value
 	tt(1)   = t;
 	zz(:,1) = obj.z0;
 	zo(1,:) = obj.z0;
+	% note that zo_last has to be stored in the same precision as z and not zo
+	% half can lead to overflow
+	zo_last = obj.z0;
+	%(odx,:)');
+	rms_zo_last = rms(zo(1,:));
 
 	% first element contains stat value, so at first iteration tdx=2
 	% time step counter
@@ -77,26 +81,12 @@ function [to,zo,out] = solve_step(obj)
 	timer = tic();
 	esum  = 0;
 	dtold = inf;
-	while (t < obj.T)
-		tdx = tdx+1;
-		% reallocate, double storage
-		if ( tdx>2 || tdx>nt)
-			if (tdx > 2)
-				nt    = 2*nt;
-			end
-	%		obj.out.stat(nt) = obj.out.stat(1);
-			%tt(nt) = 0;
-			%obj.out.rmse(nt) = 0;
-			%obj.out.fs(nt)   = 0;
-			%obj.out.a_line_search(nt) = 0;
-			%obj.out.innersteps(nt) = 0;
-			%obj.out.exitflag(1:nt) = 0;
-			%obj.out.exitflag2{nt} = {};
-			%obj.out.inntersteps2{nt} = {};
-		end
+	while (t < T(2))
+		timeri = tic();
+		tdx  = tdx+1;
+		zold = zz(:,1);
 
 		% step from t, tdx-1 to t+dt, tdx
-		timeri = tic();
 		%[zz(:,cc(1)),obj.out.stat(tdx)] = obj.aux.fstep(t,zz(:,cc(2)),dt,tdx,tt,zz);
 		% TODO, this is inefficient, as it reorders columns, so better pass cc
 %		cc_ = circshift(cc,1);
@@ -104,7 +94,8 @@ function [to,zo,out] = solve_step(obj)
 %		cc = circshift(cc,+1);
 %		tt_(cc_) = tt;
 %		zz_(:,cc_) = zz;
-		zold = zz(:,1);
+		
+		% initial guess for implicit solverm, polynomial extrapolation
 		eo = obj.opt.extrapolation_order;
 		eo = min(eo,tdx);
 		c = (vander_1d(dt,eo)*inv(vander_1d(tt(1:(eo+1))-tt(1),eo)))';
@@ -112,38 +103,12 @@ function [to,zo,out] = solve_step(obj)
 		% TODO flag if variables are positive
 		z = max(0,z);
 		
-		if (0)
-		switch (obj.opt.extrapolation_order)
-		case {0} % constant
-			z = zz(:,1); 
-		case {1} % linear
-			%z = zz(:,1) + (dt/dtold)*(zz(:,1)-zz(:,2));
-			if (tdx>2)
-				c = (vander_1d(dt,1)*inv(vander_1d(tt(1:2)-tt(1),1)))';
-				z = zz(:,1:2)*c;
-			else
-				z=zz(:,1);
-			end
-			% TODO flag if variables are positive
-			z = max(z,0);
-		case {2} % quadratic
-			if (tdx>3)
-				c = (vander_1d(dt,2)*inv(vander_1d(tt(1:3)-tt(1),2)))';
-				z = zz(:,1:3)*c;
-			else
-				z=zz(:,1);
-			end
-			z = max(z,0);
-		otherwise
-			error('not yet implemented');
-		end
-		end
-
 		tt = circshift(tt,1);
 		zz = circshift(zz,1,2);
 
 		attempt = 0;
 		stat = [];
+		% step, if implicit solver fails, reduce the time step
 		while (1)
 			attempt = attempt+1;
 			[zz(:,1),stat_] = obj.aux.fstep(t,z,zold,dt,tt,zz);
@@ -158,48 +123,33 @@ function [to,zo,out] = solve_step(obj)
 			end
 			z = zz(:,1);
 		end
-		stat.attempt=attempt;
+		stat.attempt = attempt;
 		t            = t+dt;
 		tt(1)        = t;
-%		tt(cc(1))    = t;
 		stat.runtime = toc(timeri);
 		if (tdx>=nc)
-			esum = esum+stat.rmse;
+			esum = esum+stat.maxe;
 		end
 
-		% store output
-		if (t >= to(odx+1) || stat.flag(end))
-			printf('Progress: %f%% Time: %f dt: %f dt0: %f \n',100*t/obj.T,t,dt,stat.dt0);
-			odx = odx+1;
-			% reallocate output array (this should not be required)
-			if (odx>no)
-				no              = 2*no;
-				to(no)          = 0;
-				zo(1,no)        = 0;
-				obj.out.rmse(no)    = 0;
-				obj.out.runtime(no) = 0;
-			end
-			to(odx)   = t;
-			%zo(odx,:) = zz(:,cc(1));
-			zo(odx,:) = zz(:,1);
-			% since the first column is the initial value steps = tdx-1
-			obj.out.n_step(odx) = tdx-1;
-			obj.out.runtime(odx) = toc(timer);
-			obj.out.rmse(odx) = stat.rmse; %rms(e);
-			obj.out.stat(odx) = stat;
-			obj.out.esum(odx) = esum;
-			obj.out.dt(odx) = dt;
-%			if (obj.opt.condest)
-%				obj.out.condest(odx) = condest(obj.aux.AA);
-%			end
+		% difference of current state to last stored state
+		rms_delta_zo = rms(zz(:,1) - zo_last);
+
+		% store output of time since last storing exceeds dto
+		% or change since last time step exceeds delta_zo_rel_max
+		if (	(odx+1 < length(to) && t >= to(odx)+obj.opt.dto) ...
+			|| stat.flag(end)  ...
+			|| (rms_delta_zo >= obj.opt.rms_delta_zo_rel_max*rms_zo_last) ...
+		   )
+			printf('Progress: %f%% Time: %f ||dzo||/||zo||: %g dt: %f dt_opt: %f \n', ...
+					100*t/obj.T, ...
+					t, ...
+					rms_delta_zo/rms_zo_last, ...
+					dt, ...
+					stat.dt_opt ...
+			      );
+			store();
 		end
-		b = obj.extract2(zz(:,1));
-%		imagesc(b)
-%		dt
-%		t
-%		stat
-%pause(1)
-%		stat.inner2
+
 		if (0 ~= stat.flag(end))
 			finish();
 			% in case of error store last states
@@ -209,39 +159,61 @@ function [to,zo,out] = solve_step(obj)
 		end
 
 		% adaptive error control, determine the time step
-%dt
 		dtold = dt;
 		if (obj.opt.adapt_time_step && tdx>=nc)
-			dt = obj.adapt_time_step(t,dt,stat.dt0,stat);
+			dt = obj.adapt_time_step(t,dt,stat.dt_opt,stat);
 		end
-%dt
-%pause
 	end % for tdx
+	% write last step
+	if (to(odx)<T(2))
+		store();
+	end
+
 	obj.out.y_final = zz(:,cc(1));
 
-	% shrink matrices to actual size
-	nt = tdx;
-%	if (strcmp(obj.opt.solver,'solve_implicit'))
-%	obj.out.a_line_search = obj.out.a_line_search(1:nt);
-%	obj.out.exitflag      = obj.out.exitflag(1:nt);
-%	obj.out.exitflag2     = obj.out.exitflag2(1:nt);
-%	obj.out.fs            = obj.out.fs(1:nt);
-%	obj.out.innersteps    = obj.out.innersteps(1:nt);
-%	obj.out.innersteps2   = obj.out.innersteps2(1:nt);
-%	obj.out.step.runtime       = obj.out.step.runtime(1:nt);
-	%obj.out.t             = tt(1:nt);
-%	end
 	finish();
 
-function finish()
-	no                = odx
-	to                = to(1:no);
-	zo                = zo(1:no,:);
-	obj.out.rmse      = obj.out.rmse(1:no);
-	obj.out.runtime   = obj.out.runtime(1:no);
-	obj.out.n_step    = obj.out.n_step(1:no);
-	obj.out.dt        = obj.out.dt(1:no);
-	out = obj.out;
-end
+	function store()
+			% move to next output slot
+			odx = odx+1;
+			% reallocate output array
+			% only takes effect when output is variable
+			% with respect to relative change
+			if (odx>no)
+				% double vector length
+				no                  = 2*no;
+				% extend vectors by filling zeros
+				% to has to be filled with NaN or inf to avoid storing every time step
+				to(end+1:no)        = NaN;
+				zo(1,no)            = 0;
+				obj.out.runtime(no) = 0;
+				obj.out.n_step(no)  = 0;
+				obj.out.runtime(no) = 0;
+				obj.out.rmse(no)    = 0;
+				oub.out.dt(no)      = 0;
+			end
+			to(odx)     = t;
+			zo_last     = zz(:,1);
+			rms_zo_last = rms(zo_last);
+			zo(odx,:)   = zz(:,1);
+			% since the first column is the initial value steps = tdx-1
+			obj.out.n_step(odx)  = tdx-1;
+			obj.out.runtime(odx) = toc(timer);
+			obj.out.stat(odx)    = stat;
+			obj.out.esum(odx)    = esum;
+			obj.out.dt(odx)      = dt;
+	end % store
+
+	function finish()
+		% shrink matrices to size containing values
+		no                = odx;
+		to                = to(1:no);
+		zo                = zo(1:no,:);
+		obj.out.rmse      = obj.out.rmse(1:no);
+		obj.out.runtime   = obj.out.runtime(1:no);
+		obj.out.n_step    = obj.out.n_step(1:no);
+		obj.out.dt        = obj.out.dt(1:no);
+		out               = obj.out;
+	end
 end % solve_step
 

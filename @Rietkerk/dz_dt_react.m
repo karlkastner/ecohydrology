@@ -48,6 +48,12 @@ function dz_dt = dz_dt_react(obj,t,z)
 	else
 		db = obj.p.db;
 	end
+
+	if (isa(obj.p.rw,'function_handle'))
+		rw = obj.p.rw(t);
+	else
+		rw = obj.p.rw;
+	end
 	
 	% uptake of water by plants
 	U = p.gb.*w./(w + p.kw).*b;
@@ -55,8 +61,8 @@ function dz_dt = dz_dt_react(obj,t,z)
 	% infiltration of water into soil
 	In = p.a.*obj.infiltration_enhancement(b).*h;
 
-	db_dt = p.cb.*U - p.db.*b;
-	dw_dt = In - U - p.rw.*w;
+	db_dt = p.cb.*U - db.*b;
+	dw_dt = In - U - rw.*w;
 	dh_dt = R - In;
 
 	% stack output

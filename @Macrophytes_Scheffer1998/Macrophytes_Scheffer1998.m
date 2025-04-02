@@ -14,15 +14,13 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-% spatially extended grazing model
-% c.f. May 1977, van Nes and Scheffer 2005
-classdef RAD_Linear < RAD_Model
+classdef Macrophytes_Scheffer1998 < RAD_Model
 	properties
 	end
 	methods
 
-		function obj = RAD_Linear(varargin)
-			obj = obj.RAD_Linear_();
+		function obj = Macrophytes_Scheffer1998(varargin)
+			obj = obj.Macrophytes_Scheffer1998_();
 			if (~isempty(varargin) && isstruct(varargin{1}))
 				obj = copyfields_deep(varargin{1},obj);
 			else
@@ -31,12 +29,21 @@ classdef RAD_Linear < RAD_Model
 			    end
 			end
 		end
-		function obj = RAD_Linear_(obj)
-			obj.nvar = 1;
-			obj.pmu.ex = 0.1;
-			obj.pmu.ey = 0.1;
-			obj.pmu.vx = 0;
-			obj.pmu.vy = 0;
+		function obj = Macrophytes_Scheffer1998_(obj)
+			obj.nvar = 2;
+			obj.pmu = struct(
+			,'he', 2 ...
+			,'e0', 5 ... % 1-12 in scheffer 2005
+			,'re', 0.1 ...
+			,'rv', 0.05 ...
+			,'hv', 0.2 ...
+			,'p', 4 ...
+			, 'ex', [0.01,0.01] ...
+			, 'ey', [0.01,0.01]  ...
+			, 'vx', [0,0] ...
+			, 'vy', [0,0] ...
+			);
+
 
 			obj.pss = struct();
 			obj.psl = struct();
@@ -58,7 +65,7 @@ classdef RAD_Linear < RAD_Model
 			obj.opt.rng       = 0;
 			obj.opt.solver    = @ode23;
 			obj.opt.path_str  = './';
-			obj.opt.base_str  = 'rad-linear-';
+			obj.opt.base_str  = 'macrophytes-';
 			obj.opt.loadfinal = false;
 			obj.opt.compute_class = @double;
 			obj.opt.output_class = 'half';
@@ -71,5 +78,5 @@ classdef RAD_Linear < RAD_Model
 					    };
 		end
 	end
-end % RAD_Linear
+end % Macrophytes_Scheffer1998
 

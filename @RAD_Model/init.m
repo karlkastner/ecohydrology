@@ -35,7 +35,13 @@ function obj = init(obj)
 			sl = obj.psl.(field_C{idx});
 			dist = obj.psdist.(field_C{idx});
 			%n = prod(obj.nx);
-			obj.p.(field_C{idx}) = generate(dist,mu,sd,sl,obj.nx);
+			[obj.p.(field_C{idx}),C,S] = generate(dist,mu,sd,sl,obj.nx); %,field_C{idx});
+			if (~isempty(C))
+				obj.psC.(field_C{idx}) = C;
+			end
+			if (~isempty(S))
+				obj.psS.(field_C{idx}) = S;
+			end
 		end
 	end
 
@@ -73,7 +79,9 @@ function obj = init(obj)
 	% initialize_solver
 	obj.init_solve();
 
-function x = generate(dist,mu,sd,sl,n)
+function [x,C,S] = generate(dist,mu,sd,sl,n)
+		C = [];
+		S = [];
 		dx = obj.dx;
 		% scaling standard deviations:
 		% dx : devide   as perturbations are average in space when cells are larger
@@ -90,15 +98,15 @@ function x = generate(dist,mu,sd,sl,n)
 		switch (dist)
 		case {'uniform'}
 			[a,b] = uniform_moment2par(mu,sd);
-			x = uniformrnd(a,b,n,1);
+			x = uniformrnd(a,b,prod(n),1);
 		case {'normal'}
 			x = normrnd(mu,sd,prod(n),1);
 		case {'gamma'}
-			[a,b] = gamma_moment2par(mu,sd);
-			x = gamrnd(a,b,n,1);
+			[a,b] = gampdf_moment2par(mu,sd);
+			x = gamrnd(a,b,prod(n),1);
 			% x = flat(mu.*gamrnd(1/sd^2,sd^2,n);
 		case {'lognormal'}
-			[a,b] = logn_moment2par(mu,sd);
+			[a,b] = lognpdf_moment2par(mu,sd);
 			x = lognrnd(a,b,prod(n),1);
 		case {'exp'}
 			x = exprnd(mu,prod(n),1);
@@ -121,11 +129,16 @@ function x = generate(dist,mu,sd,sl,n)
 				error('1d not yet implemented');
 			else
 				% determine parameter
-				[lmu,lsd] = logn_moment2par(mu,sd);
+				%[lmu,lmu_,lsd,lsd_,ltheta] = lognpdf_moment2par_correlated(mu,mu,sd,sd,sl);
+				%ltheta = geometric_ou_correlation_length_of_z(sl,ltheta);
+				oi = obj.opt.heterogeneity_integration_order;
+				oL = obj.opt.heterogeneity_oversampling_factor_spectral;
+				pw = obj.opt.heterogeneity_p_window;
+				% simulate an instantiation of the process
 				theta = sl;
-				m = obj.opt.heterogeneity_integration_order;
-				x = geometric_ar1_2d_grid_cell_averaged_generate(lmu,lsd,theta,obj.L,obj.nx,m);
-				x = flat(x);
+				[x,C,S] = geometric_ou_2d_grid_cell_averaged_generate(mu,sd,theta,obj.L,obj.nx,oi,oL,pw);
+				% matrix to vector
+				x  = flat(x);
 			end
 		case {'geometric-pink'}
 			if (1 == obj.ndim)
@@ -134,7 +147,7 @@ function x = generate(dist,mu,sd,sl,n)
 				% pink noise with unit variance
 				e = pink_noise_2d(n,L);
 				% rescale to desired mean and variance
-				[lmu,lsd] = logn_moment2par(mu,sd);
+				[lmu,lsd] = lognpdf_moment2par(mu,sd);
 				% transform to log-normal
 				e = exp(lmu+lsd*e);
 				x = flat(e);
