@@ -1,4 +1,5 @@
-% Mon 16 Oct 09:40:37 CEST 2023
+% Sun 12 Nov 13:41:52 CET 2023
+% TODO add trivial solution 0
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,10 +14,7 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-function [z,stat] = step_euler_forward(obj,t,z,zold,dt,tt,zz)
-	dz_dt = obj.dz_dt(t,z);
-	z = z + dt*dz_dt;
-	stat = struct('rmse',NaN,'dt0',NaN,'flag',0);
+function [S0,lambda] = homogeneous_state(obj,p);
 end
+	
 

@@ -1,4 +1,4 @@
-% 2024-12-12 22:05:38.049672356 +0100
+% 2024-12-17 17:45:12.951393857 +0100
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,19 +13,37 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-function d2A_dadz = d2A_dadz(obj,t,z,da)
-	[b,w,h] = obj.extract1(z);
+function [z, Ap] = z_stationary(obj,rhs,c,direct)
+	nvar = obj.nvar;
 	nn = prod(obj.nx);
-	kb = obj.pmu.kb;
-	w0 = obj.pmu.w0;
-
-	d2w_dadb = h./(b + kb) - (h.*(b + kb*w0))./(b + kb).^2;
-	d2w_dadh = (b + kb.*w0)./(b + kb);
-
-	d2A_dadz = [sparse([],[],[],nn,3*nn),
-		 diag(sparse(d2w_dadb.*da)),sparse([],[],[],nn,nn),diag(sparse(d2w_dadh.*da))
-		 diag(sparse(-d2w_dadb.*da)),sparse([],[],[],nn,nn),diag(sparse(-d2w_dadh.*da))
-		];
+	A = [];
+	cc  = reshape(c(1:nvar^2),nvar,nvar)'; % transpose?
+	cd  = c(nvar^2+(1:nvar));
+	if (~direct)
+		cce = reshape(c(nvar^2+nvar+1:2*nvar^2+nvar),nvar,nvar)';
+	end
+	D2 = obj.aux.D2x + obj.aux.D2y;
+	Ap  = [];
+	rhs = reshape(rhs,nn,nvar);
+	I   = speye(nn);
+	for idx=1:nvar
+		Ai = [];
+		for jdx=1:nvar
+			Aij = cc(idx,jdx)*I;
+			if (~direct)
+				Aij = diag(sparse(cce(idx,jdx)*e(:,idx)));
+			end
+			if (idx == jdx)
+				Aij = Aij + cd(idx)*D2;
+			end
+			Ai = [Ai, Aij];
+		end
+		Ap = [Ap;Ai];
+	end
+	%if (~direct)
+	%	rhs = e(:);
+	%end
+	%rhs = rhs(:);
+	z = Ap \ rhs(:);
 end
 

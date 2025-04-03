@@ -1,4 +1,4 @@
-% Mon 16 Oct 09:40:37 CEST 2023
+% Sun 12 Nov 13:37:24 CET 2023
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -13,10 +13,14 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-%
-function [z,stat] = step_euler_forward(obj,t,z,zold,dt,tt,zz)
-	dz_dt = obj.dz_dt(t,z);
-	z = z + dt*dz_dt;
-	stat = struct('rmse',NaN,'dt0',NaN,'flag',0);
+function dz_dt = dz_dt_react(obj,t,z,c)
+	nn    = prod(obj.nx);
+	z     = reshape(z,nn,obj.nvar);
+	if (nargin()<4)
+		c= obj.p.c;
+	end
+	% this is equal to J*z + b, but faster
+	dz_dt = (z*c) + obj.p.b';
+	dz_dt = reshape(dz_dt,nn*obj.nvar,1);
 end
 

@@ -1,4 +1,4 @@
-% Mon 16 Oct 09:40:37 CEST 2023
+% 2024-12-16 17:01:09.145481896 +0100
 % Karl Kästner, Berlin
 %
 %  This program is free software: you can redistribute it and/or modify
@@ -14,9 +14,21 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-function [z,stat] = step_euler_forward(obj,t,z,zold,dt,tt,zz)
-	dz_dt = obj.dz_dt(t,z);
-	z = z + dt*dz_dt;
-	stat = struct('rmse',NaN,'dt0',NaN,'flag',0);
-end
+% return the linear part and affine part (residual) of dz_de
+function [J, res] = dz_de(obj,t,e)
+	ce  = obj.p.ce;
+	ce0 = obj.p.ce0;
+
+	% TODO use buffer for construction
+	J   = [];
+	res = [];
+	for idx=1:obj.nvar
+	    Ji  = [];
+	    res = [res; ce0(idx)*e];
+	    for jdx=1:obj.nvar
+		Ji = [Ji, diag(sparse(ce(idx,jdx)*e))];
+	    end
+	    J = [J; Ji];
+	end
+end % dz_de
 
