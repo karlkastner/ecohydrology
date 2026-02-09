@@ -18,13 +18,6 @@
 %
 function [key_val, key_str] = hash(obj)
 	hashfield_C = obj.hashfield_C;
-	% set unused fields to default values
-%	f_C = fieldnames(obj.psdist);
-%	for idx=1:length(f_C)
-%		if (~strcmp(obj.psdist.(f_C{idx}),'geometric-ornstein-uhlenbeck'))
-%			obj.psl.(f_C{idx}) = 0;
-%		end
-%	end
 	[key_val, key_str] = hashobj(obj,hashfield_C);
 end % hash
 

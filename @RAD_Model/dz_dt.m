@@ -13,10 +13,7 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function dz_dt = dz_dt(obj,t,z)
-	% a = obj.afun(t);
-	% dS/dt = a - b S + r S^p/(1+S^p) + e d^2/dx^S
-	dz_dt = obj.dz_dt_react(t,z) + obj.aux.AD*z;
-	%dS_dt = a - b*S + r*S.^p./(1 + S.^q) + e*reshape(laplacian*S(:),n(1),n(2));
+function dz_dt = dz_dt(obj,t,z,varargin)
+	dz_dt = obj.dz_dt_react(t,z,varargin{:}) + obj.aux.AD*z;
 end
 

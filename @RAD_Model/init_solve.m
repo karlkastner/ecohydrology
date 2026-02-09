@@ -1,4 +1,64 @@
+% 2024-03-24 11:22:25.248722605 +0100
+% Karl Kästner, Berlin
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+% TODO remove deprecated multigrid code
 function init_solve(obj)
+	if (isfield(obj.opt,'tevent'))
+		obj.aux.tevent = obj.opt.tevent;
+	else
+		obj.aux.tevent = [0,inf];
+	end
+	obj.aux.dt_max_prec = NaN;
+	obj.aux.max_eig_J = sqrt(eps);
+
+	% output times
+	% note that the output time step will vary when output is set to be
+	% written when the state variable exceeds the maximum relative change
+	if (~isempty(obj.opt.output.dt))
+		%dto = min(max(dt,obj.opt.dto),obj.T(2)-obj.T(1));
+		dto = min(obj.opt.output.dt,obj.T(2)-obj.T(1));
+	else
+		dto = obj.T(2)-obj.T(1);
+	end
+	% allocate output
+	obj.out = struct();
+	obj.out.to  = (obj.T(1):dto:obj.T(2))';
+	if (isfield(obj.opt.output,'no'))
+	no  = obj.opt.output.no;
+	else
+	no  = length(obj.out.to);
+	end
+	%nt  = no;
+
+	% allocate memory for state variable at output times
+	obj.out.zo = zeros(no,obj.nvar*prod(obj.nx),func2str(obj.opt.output.class));
+
+	% first value in output is the initial value
+	obj.out.zo(1,:) = obj.z0;
+
+	% these counters are per step and have small values
+	obj.out.n_attempt = zeros(no,1,'uint16');
+	obj.out.n_error_tolerance_exceeded = zeros(no,1,'uint16');
+	obj.out.n_solver_failed = zeros(no,1,'uint16');
+	obj.out.n_neg     = zeros(no,1,'uint16');
+	obj.out.n_iter    = zeros(no,1,'uint16');
+	obj.out.n_liter   = zeros(no,1,'uint16');
+	obj.out.n_step    = zeros(no,1,'uint16');
+	obj.out.runtime   = zeros(no,1);
+	obj.out.esum      = zeros(no,1,func2str(obj.opt.compute_class));
+
 	% convert solver to string for switch-case
 	if (isa(obj.opt.solver,'function_handle'))
 		solver_str = func2str(obj.opt.solver);
@@ -10,88 +70,121 @@ function init_solve(obj)
 	% init solvers
 	%
 	tic();
-	obj.out = struct();
-	obj.aux.compute_S = false;
+
+	% TODO this should be moved to the Rietkerk class
+	if (isfield(obj.opt,'nonlinear_flow') && obj.opt.nonlinear_flow)
+		switch (obj.ndim)
+		case {1}
+		obj.aux.zero_inertia = SWE_Zero_Inertia_1d(obj.opt.zero_inertia);
+		case {2}
+		obj.aux.zero_inertia = SWE_Zero_Inertia_2d(obj.opt.zero_inertia);
+		end % switch ndim
+		zb = obj.p.zb;
+		if (isscalar(zb))
+			nx = obj.nx;
+			if (isscalar(nx))
+				nx =[nx,1];
+			end
+			zb = repmat(zb,nx+2);
+		end % isscalar zb
+		obj.aux.zero_inertia.eps = 1e-6*obj.opt.zero_inertia.input_factor;
+        	obj.aux.zero_inertia.zb   = zb;
+		obj.aux.zero_inertia.returnmat = true;
+   		%obj.aux.zero_inertia.C    = obj.pmu.Chezy;
+   		obj.aux.zero_inertia.lcd  = obj.pmu.lcd;
+       		obj.aux.zero_inertia.L    = obj.L;
+	        obj.aux.zero_inertia.n    = obj.nx;
+	        obj.aux.zero_inertia.boundary_condition  = obj.boundary_condition;
+
+       	end % if nonlinear flow
+
+	obj.aux.q = 0;
 	switch (solver_str)
-	case {'solve_split'}
-		% initialize fourier transform of impulse responses of linear
-		% advection-diffusion part
-		switch (obj.opt.inner_solver)
-		case {'step_advect_diffuse_trapezoidal'}
-			obj.init_fourier_matrices();
-		case {'step_advect_diffuse_spectral'}
-			% nothing to do
-		case {'step_advect_diffuse_implicit_q_fft'}
-			% nothing to do
-		otherwise
-			error(sprintf('unimplemented inner solver %s',obj.opt.inner_solver));
-		end
-		obj.aux.fstep = @obj.step_split;
+	case {'solve_step'}
+	switch (obj.opt.time_integration.scheme)
+	case {'aid','step_aid'}
+		obj.aux.q = 0.5;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_aid;
 	case {'step_integrating_factor'}
+		obj.aux.q = 0;
 		obj.aux.fstep = @obj.step_integrating_factor;
 	case {'step_react_advect_diffuse_erk'}
+		obj.aux.q=0;
 		obj.aux.fstep = @obj.step_react_advect_diffuse_erk;
-	case {'euler_forward'}
+	case {'step_euler_forward'}
+		obj.aux.q = 0;
 		obj.init_advection_diffusion_matrix();
-		obj.aux.fstep = @obj.step_euler_forward;
-	case {'solve_implicit'}
-		% TODO this should be avoided for MG
+		obj.aux.fstep = @step_euler_forward;
+		obj.aux.butcher_table = butcher_table('forward');
+	case {'implicit-euler','euler-implicit','step_euler_implicit'}
+		obj.aux.q = 1;
 		obj.init_advection_diffusion_matrix();
-		switch (obj.opt.innersolver2)
-		case {'gmres','bicgstabl'}
-			switch (obj.opt.preconditioner)
-			case {'multigrid-java'}
-				obj.aux.compute_aa = true;
-				init_multigrid_java();
-				obj.aux.mg_j.nmaxiter = 1;	
-			case {'ilu','',[]}
-				obj.aux.compute_aa = false;
-			end
-			obj.aux.compute_A = true;				
-		case {'multigrid'}
-			obj.mg_m = Multigrid();
-			dz0 = zeros(size(g));
-			adx = upwind_kernel(cvec(obj.pmu.vx));
-			ady = upwind_kernel(cvec(obj.pmu.vy));
-			ad(1,:,:) = shiftdim(adx',-1);
-			ad(2,:,:) = shiftdim(ady',-1);
-			obj.aux.ad = ad;
-			obj.aux.e  = [rvec(obj.pmu.ex); rvec(obj.pmu.ey)];
-			obj.mg_m.init(obj.aux.aa,obj.aux.ad,obj.aux.e,obj.L,obj.nx,obj.nvar);
-		case {'multigrid-java'}
-			obj.aux.compute_aa = true;
-			init_multigrid_java();
-			obj.aux.compute_A = false;
-		otherwise
-			error('umimplemented inner-solver');
-		end
-		obj.aux.fstep = @obj.step_implicit;
+		obj.aux.fstep = @obj.step_euler_implicit;
+		obj.aux.butcher_table = butcher_table('backward');
+	case {'euler-implicit-2x'}
+		obj.aux.q = 1;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_euler_implicit_2x;
+	case {'trapezoidal-2x'}
+		obj.aux.q = 0.5;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_trapezoidal_2x;
+	case {'trapezoidal','step_trapezoidal'}
+		obj.aux.q = 0.5;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_trapezoidal;
+		obj.aux.butcher_table = butcher_table('trapezoidal');
+	case {'trbdf2'}
+		obj.aux.q = (2-sqrt(2))/2; 
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_trbdf2;
+		obj.aux.butcher_table = butcher_table('trbdf2');
+	case {'midpoint','step_midpoint'}
+		obj.aux.q = 0.5;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_midpoint;
+		obj.aux.butcher_table = butcher_table('midpoint');
+	case {'sdirk23'}
+		obj.aux.q=(3+sqrt(3))/6;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_sdirk23;
+		obj.aux.butcher_table = butcher_table('sdirk23');
+	case {'sdirk2'}
+		obj.aux.q = (2-sqrt(2))/2;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_sdirk2;
+		obj.aux.butcher_table = butcher_table('sdirk2');
+	case {'euler-double','step_euler_double'}
+		obj.aux.q = 1;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_euler_double;
+	%case {'step_split'}
+	%	obj.aux.q=0;
+		% initialize fourier transform of impulse responses of linear
+		% advection-diffusion part
+	%switch (obj.opt.inner_solver)
+	case {'step_advect_diffuse_aid'}
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_split;
+	case {'step_advect_diffuse_spectral'}
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_split;
+		% nothing to do
+	case {'step_advect_diffuse_implicit_q_fft'}
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_split;
+		% nothing to do
+	%	otherwise
+	%	error(sprintf('unimplemented inner solver %s',obj.opt.inner_solver));
+	%	end
+	otherwise
+		error('Unimplemented time_stepper')
+	end
 	otherwise
 		% build-in solver
 		obj.init_advection_diffusion_matrix();
 	end % switch obj.opt.solver
 	obj.out.runtime(1) = toc();
-
-	function init_multigrid_java()
-		obj.aux.mg_j = javaObject('Multigrid_java');
-		obj.aux.mg_j.set_reltol(obj.opt.inner2_tol);
-		obj.aux.mg_j.set_nmaxiter(obj.opt.inner2_maxiter);
-		obj.aux.dz0 = zeros(obj.nvar,prod(obj.nx));
-		obj.aux.tflag = true;
-		obj.jacobian_react(0,obj.aux.dz0(:),obj.aux.dz0,2,obj.aux.tflag); 
-		adx = upwind_kernel(cvec(obj.pmu.vx));
-		ady = upwind_kernel(cvec(obj.pmu.vy));
-		ad(1,:,:) = shiftdim(adx',-1);
-		ad(2,:,:) = shiftdim(ady',-1);
-		ad = zeros(2,3,obj.nvar);
-		for idx=1:obj.nvar
-			ad(2,:,idx) = upwind_kernel(-obj.pmu.vx(idx));
-			ad(1,:,idx) = upwind_kernel(-obj.pmu.vy(idx));
-		end
-		obj.aux.ad = -ad;
-		obj.aux.e  = [rvec(obj.pmu.ey); rvec(obj.pmu.ex)];
-		obj.aux.mg_j.init(obj.aux.aa,obj.aux.ad,obj.aux.e,obj.L,obj.nx);
-		obj.aux.isaa = true;
-	end
 end
 

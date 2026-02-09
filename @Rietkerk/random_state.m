@@ -30,6 +30,10 @@ function [z0] = random_state(obj,mode,R0,mb0,sb0)
 		sb0 = 1;
 	end
 
+	if (isa(R0,'function_handle'))
+		R0 = max(R0(0,1),R0(0,2));
+	end
+
 	switch (mode)
 	case {1}
 		o = ones(obj.nx,1);
@@ -51,11 +55,15 @@ function [z0] = random_state(obj,mode,R0,mb0,sb0)
 %		      p(:,3).*h0 + (1-p(:,3)).*h1];
 	case {2} % randomly perturb rainfall
 		% this is very noise and
-		% the resulting pattern in the unperturbed case becomes labyrinthic
 		n = obj.nx;
 		if (1 == length(n)) n(2) = 1; end
 		p   = obj.pmu;
-		p.R        = gamrnd(R0*mb0,R0*sb0,prod(n),1);
+		%p.db = 0.25;
+		%p.gb = 0.05;
+		%R0   = 1;
+		obj.opt.R0;
+		p.R  = 2*R0*rand(prod(n),1);
+		% gamrnd(R0*mb0,R0*sb0,prod(n),1);
 		% state pendendent on local water availablity
 		[b,w,h] = obj.homogeneous_state(0,p,2);
 		z0  = [flat(b);flat(w);flat(h)];

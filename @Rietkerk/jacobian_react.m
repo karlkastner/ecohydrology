@@ -20,125 +20,80 @@
 %
 % J = dA(z)/dz
 %
-function [J] = jacobian_react(obj,t,z,r,outmode,tflag)
-	if (nargin()<5)
-		outmode = 0;
-	end
-	if (nargin()<6)
+function J = jacobian_react(obj,t,z,tflag)
+	if (nargin() < 5)
 		tflag = false;
 	end
 
 	p = obj.p;
-	[b,w,h] = obj.extract1(z);
+	%[b,w,h] = obj.extract1(z);
+	if (obj.aux.surface_flow)
+		z = reshape(z,[],3);
+		h = z(:,3);
+	else
+		z = reshape(z,[],2);
+	end
+	b = z(:,1);
+	w = z(:,2);
 
-	dU_db = (p.gb*w)./(p.kw + w);
-	dU_dw = p.gb*b*p.kw./(p.kw + w).^2;
-	dI_db = p.kb*p.a.*h.*(p.w0 - 1)./(b + p.kb).^2;
-	dI_dh = p.a.*(b + p.kb*p.w0)./(b + p.kb);
+	% derivative of the slowdown term
+	if (issym(p.fgb) || p.fgb~=1)
+		%s     = (w.^2 + p.fgb*p.kgb.^2)./(w.^2 + p.kgb.^2);
+		ds_dw = -(2*p.kgb.^2.*w.*(p.fgb - 1))./(p.kgb.^2 + w.^2).^2;
+	else
+		ds_dw = 0;
+	end
 
+	[U,s]          = obj.soil_water_uptake_rate(z);
 
-	switch (outmode)
-	case {0} % output as matrix
+	dU_db      = s.*(p.gb*w)./(p.kUw + w);
+	dU_dw      = s.*p.gb.*b.*p.kUw./(p.kUw + w).^2;
+	dwevap_db  =   p.revap.*p.bevap.*w./(p.bevap+b).^2;
+	dwevap_dw  = - p.revap.*p.bevap./(p.bevap+b);
+	dwdrain_dw = - p.rdrain.*(w.*(2*p.wdrain + w))./(p.wdrain + w).^2;
+	if (obj.aux.surface_flow)
+	if (obj.opt.linear_infiltration)
+		%dI_db = p.kIb*p.a.*h.*(p.w0 - 1)./(b + p.kIb).^2;
+		dI_db = -p.a*(b.^(p.pI-1).*p.kIb^p.pI.*p.pI.*(p.w0 - 1))./((b.^p.pI + p.kIb.^p.pI).^2).*h;
+		dI_dh =  p.a*(b.^p.pI + p.kIb.^p.pI*p.w0)./(b.^p.pI + p.kIb.^p.pI);
+	else
+		if (1 == p.pI)
+			dI_db = -p.a*(p.kIb.*(p.w0 - 1))./((b + p.kIb).^2);
+		else
+			dI_db = -p.a*(b.^(p.pI-1).*p.kIb^p.pI.*p.pI.*(p.w0 - 1))./((b.^p.pI + p.kIb.^p.pI).^2);
+		end
+		% for constant reate, we have 
+		% ri = constant_rate*ie(b)
+		% if ri > lim, then there is no dependence on b anymore
+		dI_db(obj.aux.ri_limited) = 0;
+		dI_dh = zeros(prod(obj.nx),1);
+	end
+	else
+		dI_db = 0;
+	end
+
 	if (~issym(z))
-	%nn = prod(obj.nx);
 	nn = numel(b);
+	% TODO use sparse as it is about twice as fast with precomputed indices
 	Z = spalloc(nn,nn,0);
-	J = [  [diag(sparse(p.cb*dU_db - p.db)),  diag(sparse(p.cb*dU_dw)),     Z];
-	       [diag(sparse(- dU_db - dI_db)),  diag(sparse(-dU_dw - p.rw)), diag(sparse(dI_dh))];
+	J = [  [diag(sparse(p.cb.*dU_db - s.*p.db)),  diag(sparse(p.cb.*dU_dw + ds_dw.*(p.cb.*U./s - p.db.*b)))];
+	       [diag(sparse(- dU_db - dI_db + dwevap_db)),  diag(sparse(-dU_dw - ds_dw.*U./s + dwdrain_dw + dwevap_dw))]];
+	if (obj.aux.surface_flow)
+	J = [  [J, [Z;
+	           diag(sparse(dI_dh))]];
 	       [        diag(sparse(dI_db)),           Z, diag(sparse(-dI_dh))]];
+	end
+	%J = [  [diag(sparse(p.cb.*dU_db - s.*p.db)),  diag(sparse(p.cb.*dU_dw + ds_dw.*(p.cb.*U./s - p.db.*b))),     Z];
+	 %      [diag(sparse(- dU_db - dI_db + dwevap_db)),  diag(sparse(-dU_dw - ds_dw.*U./s + dwdrain_dw + dwevap_dw)), diag(sparse(dI_dh))];
+	  %     [        diag(sparse(dI_db)),           Z, diag(sparse(-dI_dh))]];
 	if (tflag)
 		J = J';
 	end
 	else
 	Z = 0;
-	J = [  p.cb*dU_db - p.db,  p.cb*dU_dw,     Z;
-	     - dU_db - dI_db,  -dU_dw - p.rw, dI_dh;
+	J = [   s.*(p.cb*dU_db - p.db),  s.*p.cb.*dU_dw + ds_dw.*(p.cb.*U-p.db.*b),     Z;
+	      (- s.*dU_db - dI_db + devap_db),  (-s.*dU_dw - ds_dw.*U + dwdrain_dw + dwevap_dw) , dI_dh;
 	               dI_db,           Z, -dI_dh];
 	end
-	case {1}	% output as cell array
-		Z = spalloc(obj.nx(1),obj.nx(2),0);
-		dU_db = reshape(dU_db,obj.nx);
-		dU_dw = reshape(dU_dw,obj.nx);
-		dI_db = reshape(dI_db,obj.nx);
-		dI_dh = reshape(dI_dh,obj.nx);
-		J = { (p.cb*dU_db - p.db), (p.cb*dU_dw), Z; 
-	       	      (-dU_db - dI_db),  (-dU_dw - p.rw), dI_dh;
-	                 dI_db,           Z, -dI_dh;
-                    };	
-	case {2} % output as vector-matrix
-		% in function jacobian, this is transposed
-		if (tflag)
-		obj.aux.aa(1,1,:) = (p.cb*dU_db - p.db);
-		obj.aux.aa(1,2,:) = (p.cb*dU_dw);
-		%obj.aux.aa(1,3,:) = 0; % stays zero
-		obj.aux.aa(2,1,:) = (-dU_db - dI_db);
-		obj.aux.aa(2,2,:) = (-dU_dw - p.rw);
-		obj.aux.aa(2,3,:) = dI_dh;
-		obj.aux.aa(3,1,:) = dI_db;
-		%obj.aux.aa(3,2,:) = 0;
-		obj.aux.aa(3,3,:) = -dI_dh;
-		else
-		obj.aux.aa(1,1,:) = (p.cb*dU_db - p.db);
-		obj.aux.aa(2,1,:) = (p.cb*dU_dw);
-		%obj.aux.aa(3,1,:) = 0; % stays zero
-		obj.aux.aa(1,2,:) = (-dU_db - dI_db);
-		obj.aux.aa(2,2,:) = (-dU_dw - p.rw);
-		obj.aux.aa(3,2,:) = dI_dh;
-		obj.aux.aa(1,3,:) = dI_db;
-		%$obj.aux.aa(2,3,:) = 0; % stays zero
-		obj.aux.aa(3,3,:) = -dI_dh;
-		end
-		J = [];
-	end
-
-	if (obj.aux.compute_S)
-		r = reshape(r,[],3);
-		%d2U_dbdw = p.gb./(p.kw + w) - (p.gb*w)./(p.kw + w).^2;
-		%d2U_dw2 = -p.gb*b*p.kw./(p.kw + w).^3;
-
-		obj.aux.S(1,1,:) = r(:,2).*(p.cb.*gb.*kw)./(kw + w)^2;
-		obj.aux.S(1,2,:) =  (p.cb.*p.gb.*p.kw.*(p.kw.*r(:,1) - 2*b.*r(:,r2) + r(:,1).*w))./(p.kw + w)^3;
-		% S(:,1,3) = 0;
-		obj.aux.S(2,1,:) =  (2*a.*h.*p.kb.*r(:,1).*(w0 - 1))./(b + p.kb).^3 - (a.*p.kb.*r(:,3).*(w0 - 1))./(b + p.kb).^2 - (p.gb.*p.kw.*r(:,2))./(p.kw + w).^2;
-		obj.aux.S(2,2,:) = -(gb.*kw.*(kw.*r(:,1) - 2.*b.*r(:,2) + r(:,1).*w))./(kw + w).^3;
-		obj.aux.S(2,3,:) = -(a.*kb.*r(:,1).*(w0 - 1))./(b + kb)^2;
-		obj.aux.S(3,1,:) =  (a.*kb.*(w0 - 1).*(b.*r(:,3) - 2.*h.*r(:,1) + kb.*r(:,3)))./(b + kb).^3;
-		% obj.aux.S(:,3,2) = 0;
-		obj.aux.S(3,3,:) = (a.*kb.*r(:,1).*(w0 - 1))./(b + kb)^2;
-		
-	end
-
-%	obj.aux.aa = 0.*obj.aux.aa;
-%	J = 0.*J;
-
-if (0)
-	if (nargin()<4)
-		withda = true;
-	end
-	U_div_b  = p.gb.*w./(w + p.kw);
-        In = p.a.*h.*(b + p.kb.*p.w0)./(b+p.kb);
-
-	if (withda)
-		A = [ p.eb*obj.aux.D2x + (p.cb.*U_div_b - p.db).*obj.aux.I, ((b.*p.cb*p.gb*p.kw)./(p.kw + w).^2).*obj.aux.I,     obj.aux.Z
-			((p.a.*h)./(b + p.kb) - (p.gb.*w)./(p.kw + w) - (p.a.*h.*(b + p.kb.*p.w0))./(b + p.kb).^2).*obj.aux.I, ...
-				p.ew*obj.aux.D2x + (-p.rw  - (b.*p.gb)./(p.kw + w) + (b.*p.gb.*w)/(p.kw + w).^2).*obj.aux.I, ...
-				(In./h).*obj.aux.I;
-			(p.a.*h.*p.kb.*(p.w0 - 1))./(b + p.kb).^2.*obj.aux.I,    obj.aux.Z, p.eh*obj.aux.D2x + p.vh*obj.aux.D1x - (In./h).*obj.aux.I
-		];
-	else
-		% reaction part only
-	A = [ + (p.cb.*U_div_b - p.db).*obj.aux.I, ((b.*p.cb*p.gb*p.kw)./(p.kw + w).^2).*obj.aux.I,     obj.aux.Z
-		((p.a.*h)./(b + p.kb) - (p.gb.*w)./(p.kw + w) - (p.a.*h.*(b + p.kb.*p.w0))./(b + p.kb).^2).*obj.aux.I, ...
-			(-p.rw  - (b.*p.gb)./(p.kw + w) + (b.*p.gb.*w)/(p.kw + w).^2).*obj.aux.I, ...
-			(In./h).*obj.aux.I;
-		(p.a.*h.*p.kb.*(p.w0 - 1))./(b + p.kb).^2.*obj.aux.I,    obj.aux.Z, - (In./h).*obj.aux.I
-	];
-	end
-	if (nargout()>1)
-	res = [ (b.*p.cb*p.gb.*h.*p.kb)./(h + p.kb).^2
-	       b.*( -p.gb.*h.*p.kb./(h + p.kb).^2 + p.a.*w.*p.kw.*(1 - p.w0)./(b + p.kw).^2 )
-              -p.R - p.a.*b.*p.kw.*w.*(1 - p.w0)./(b + p.kw).^2];
-	end
-end
 end
 

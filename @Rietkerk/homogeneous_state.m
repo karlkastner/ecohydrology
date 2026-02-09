@@ -17,6 +17,9 @@
 %% homogeneous (not necessarily stable) states of the Rietkerk system
 %
 function [b,w,h,J,v,e] = homogeneous_state(obj,t,p,state,outz)
+	if (nargin()<2)
+		t = 0;
+	end
 	if (nargin()<3||isempty(p))
 		p = obj.pmu;
 	end
@@ -29,30 +32,31 @@ function [b,w,h,J,v,e] = homogeneous_state(obj,t,p,state,outz)
 		db = p.db(0);
 	end
 	if (isa(p.R,'function_handle'))
-		R = p.R(t);
+		%R = p.R(t,1);
+		R = obj.opt.R0;
 	else
 		R = p.R;
 	end
 	switch(state)
 	case{0}
 		% unvegetated
-       	 	w = R./p.rw;
+       	 	w = R./p.revap;
 		h = R./(p.a.*p.w0);
 		b = zeros(size(w));
 	case{1}
 		% vegetated (when R sufficiently large),
 		% otherwise biomass is negative
-		b = p.cb./db.*(R.*p.cb.*p.gb - db.*(R + p.kw.*p.rw)) ...
+		b = p.cb./db.*(R.*p.cb.*p.gb - db.*(R + p.kUw.*p.revap)) ...
 			         ./(p.cb.*p.gb - db);
-		w = -(db.*p.kw)./(db - p.cb.*p.gb).*ones(size(R));
+		w = -(db.*p.kUw)./(db - p.cb.*p.gb).*ones(size(R));
 		h =  R./p.a.*(R.*p.cb.*db  ...
                            - R.*p.cb.^2.*p.gb  ...
-                           + db.^2.*p.kb  ...
-                           - p.cb.*db.*p.gb.*p.kb  ...
-                           + p.cb.*db.*p.kw.*p.rw) ...
-		     ./ (db.^2.*p.kb.*p.w0 - R.*p.cb.^2.*p.gb  ...
-                         + R.*p.cb.*db + p.cb.*db.*p.kw.*p.rw  ...
-                         - p.cb.*db.*p.gb.*p.kb.*p.w0);	
+                           + db.^2.*p.kIb  ...
+                           - p.cb.*db.*p.gb.*p.kIb  ...
+                           + p.cb.*db.*p.kUw.*p.revap) ...
+		     ./ (db.^2.*p.kIb.*p.w0 - R.*p.cb.^2.*p.gb  ...
+                         + R.*p.cb.*db + p.cb.*db.*p.kUw.*p.revap  ...
+                         - p.cb.*db.*p.gb.*p.kIb.*p.w0);	
 	case {2}
 		% state dependent on (local) water availability
 		Rc         = obj.critical_rainfall_depth(p);

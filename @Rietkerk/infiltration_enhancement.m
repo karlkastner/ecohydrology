@@ -17,6 +17,12 @@
 %% infiltration enhancement of the Rietkerk model
 %
 function ie = infiltration_enhancement(obj,b)
-	ie = (b + obj.p.kb.*obj.p.w0)./(b+obj.p.kb);
+	%ie = (b + obj.p.kIb.*obj.p.w0)./(b+obj.p.kIb);
+	if (1 == obj.p.pI)
+		ie = (b + obj.p.kIb*obj.p.w0)./(b + obj.p.kIb);
+	else
+		ie = (b.^obj.p.pI + obj.p.kIb.^obj.p.pI*obj.p.w0)./(b.^obj.p.pI + obj.p.kIb.^obj.p.pI);
+	end
 end
+
 

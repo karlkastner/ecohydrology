@@ -14,16 +14,29 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-function save(rad,t,y,out)
-	% clear auxiliary variables to save disk space
-	rad.aux = struct();
+%% function save(rad)
+function out = save(rad)
 	[oname,oname_final] = rad.filename();
 	% write model results to hard drive
-	save(oname,'-v7.3','t','y','rad','out');
-	if (length(t)>1)
-		t = t([1,end]);
-		y = [cvec(rad.z0),cvec(out.y_final)];
+	out = rad.out;
+	if (isfield(out,'to'))
+	t   = out.to;
+	z   = out.zo;
+	% clear auxiliary variables to save disk space
+	out = rmfield(out,'to');
+	out = rmfield(out,'zo');
+	else
+		t = [];
+		z = [];
 	end
-	save(oname_final,'-v7.3','t','y','rad','out');
+	rad.out = struct();
+	rad.aux = struct();
+	save(oname,'-v7.3','t','z','out','rad');
+	if (length(t)>1)
+		t = t([1;end]);
+		% to preserve the compute class,the z0 and zfinal are written
+		z = [rvec(rad.z0);rvec(out.z_final)];
+	end
+	save(oname_final,'-v7.3','t','z','rad');
 end
 

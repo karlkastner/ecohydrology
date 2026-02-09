@@ -16,7 +16,7 @@
 %
 %% coefficients of the time-derivative of the Rietkerk-pde
 %
-function c = dz_dt_react_homogeneous(obj,t,z)
+function c = dz_dt_react_homogeneous(obj,t,z,dt)
 	if (size(z,2)>1)
 		[b,w,h] = obj.extract2(z);
 	else

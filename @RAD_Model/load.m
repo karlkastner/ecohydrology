@@ -14,7 +14,7 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-function [t,y,out] = load(obj)
+function [t,z,out] = load(obj)
 	out = struct('runtime',[]);
 	[oname,oname_final] = obj.filename();
 	if (~obj.opt.loadfinal)
@@ -28,7 +28,7 @@ function [t,y,out] = load(obj)
 			t = t(1,[1,end])';
 		end
 		if (size(y,2) == 2)
-			y = y';
+			z = z';
 		end
 	end
 	obj = copyfields_deep(rad,obj);

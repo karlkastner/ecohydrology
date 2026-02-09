@@ -19,54 +19,39 @@
 % function dz_dt = dz_dt(obj,t,z)
 % p : parameter vector
 % s : standard deviation of paramter
-% TODO variation of dH is not well implemented good -> define at interfaces between cells
 function dz_dt = dz_dt_react(obj,t,z)
-	p = obj.p;
-%	s = obj.pst;
-%%	if (size(z,2)>1)
-%		[b,w,h] = obj.extract2(z);
-%	else
-	[b,w,h] = obj.extract1(z);
-%	end
-%	if (isvector(z))
-%		b = b.';
-%		w = w.';
-%		h = h.';
-%	end
-		
-	n = prod(obj.nx);
+	% rate of draining of soil water out into deeper, unmodelled, soil layers
+	rdw = obj.drainage_rate(z);
 
-	if (isa(obj.p.R,'function_handle'))
-		R = obj.p.R(t);
+	% rate of soil water evaporation into air
+	% does not include transpiration
+	re = obj.evaporation_rate(z);
+
+	% rate of soil water uptake (transpiration) by plants
+	ru = obj.soil_water_uptake_rate(z);
+
+	% dieback of vegetation
+	rdb = obj.dieback_rate(z);
+
+	db_dt = obj.p.cb.*ru - rdb;
+	if (obj.aux.surface_flow)
+		% precipitation rate
+		% this must be computed before infiltration, as it limits the infiltrationrate
+		% for non-linear infiltration
+		rp = obj.precipitation_rate(t,obj.aux.dt);
+		obj.aux.rp = rp;
+
+		% rate of infiltration of surface water into soil
+		ri = obj.infiltration_rate(z);
+
+		dw_dt = (ri - ru - rdw - re);
+		dh_dt = rp - ri;
+
+		% stack output
+		dz_dt = [db_dt; dw_dt; dh_dt];
 	else
-		R = obj.p.R;
-		% isa(obj.p.R,'function_handle'))
+		dw_dt = ( - ru - rdw - re);
+		dz_dt = [db_dt; dw_dt];
 	end
-
-	if (isa(obj.p.db,'function_handle'))
-		db = obj.p.db(t);
-	else
-		db = obj.p.db;
-	end
-
-	if (isa(obj.p.rw,'function_handle'))
-		rw = obj.p.rw(t);
-	else
-		rw = obj.p.rw;
-	end
-	
-	% uptake of water by plants
-	U = p.gb.*w./(w + p.kw).*b;
-
-	% infiltration of water into soil
-	In = p.a.*obj.infiltration_enhancement(b).*h;
-
-	db_dt = p.cb.*U - db.*b;
-	dw_dt = In - U - rw.*w;
-	dh_dt = R - In;
-
-	% stack output
-	dz_dt = [db_dt; dw_dt; dh_dt];
-
 end % dz_dt_react
 

@@ -14,9 +14,17 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-function [z,stat] = step_euler_forward(obj,t,z,zold,dt,tt,zz)
-	dz_dt = obj.dz_dt(t,z);
+function [z,stat] = step_euler_forward(obj,t,z,dt)
+	nargin_ = nargin(obj.dz_dt);
+	if (2 == nargin_)
+		dz_dt = obj.dz_dt(t,z);
+	else
+		dz_dt = obj.dz_dt(t,z,dt);
+	end
 	z = z + dt*dz_dt;
-	stat = struct('rmse',NaN,'dt0',NaN,'flag',0);
+	if (nargout()>1)
+		% TODO
+		stat = struct('rmse',NaN,'dt0',NaN,'flag',0);
+	end
 end
 

@@ -14,9 +14,9 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 %
-function [oname,oname_final] = filename(obj)
+function [oname,oname_final,key] = filename(obj)
 	key         = obj.hash();
-	oname       = [obj.opt.path_str,obj.opt.base_str,num2str(key),'.mat'];
-	oname_final = [obj.opt.path_str,obj.opt.base_str,num2str(key),'-final.mat'];
+	oname       = [obj.opt.output.path_str,obj.opt.output.base_str,num2str(key),'.mat'];
+	oname_final = [obj.opt.output.path_str,obj.opt.output.base_str,num2str(key),'-final.mat'];
 end
 

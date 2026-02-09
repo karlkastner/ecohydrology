@@ -27,12 +27,10 @@ classdef Rietkerk < RAD_Model
 		% mean of the physical parameters
 		obj.pmu = struct(         ...
 			  'cb',	10    ... % g mm^-1 m^-2
-			... % range given as 0 to 0.5 by rietkerk
+			... % range of db given as 0 to 0.5 by rietkerk
 			 ,'db',	 0.25 ... % d^-1
-			 ,'kw',	 5    ... % mm
 			 ,'gb',	 0.05 ... % mm g^-1 m^-2 d^-1
 			 ,'a',	 0.2  ... % d^-1
-			 ,'rw',	 0.2  ... % d^-1
 			 ,'ex', [0.1,0.1,100] ... % eb,ew,eh, m^2 d^-1
 			 ,'ey', [0.1,0.1,100] ... % eb,ew,eh, m^2 d^-1
 			 ,'vx', [0,0,0] ... % vb,vw,vh, m d^-1
@@ -44,9 +42,25 @@ classdef Rietkerk < RAD_Model
 			 ...% range given as 0 to 3 by Rietkerk
 			 ,'R',	 1    ... % mm d^-1
 			 ,'w0',	 0.2  ...   % 1
-			 ,'kb',	 5 ...     % g m^-2
+			 ,'kUw',	 5 ...     % mm
+			 ,'kIb',	 5 ...     % g m^-2
+			 , 'bevap', 1/sqrt(eps) ...
+			 , 'revap', 0.2 ...
+			 ...%,'rw',	 0.2  ... % d^-1
+			 ...%,'krw', sqrt(eps) ...
+			 ...%,'kbrw', 1./sqrt(eps) ...
+			 , 'fgb', 1 ... % if not 1, soil water uptake slows down during the dry season
+			 , 'kgb', 10 ... % slow down coefficient
 			 ... , 'Manning', 0.055 ... % c.f. caviedes 2022 
 		         ... , 'dzb_dx', 0 ...
+			 ,'Cb', NaN ...
+			 ,'Cv', NaN ...
+			 ,'kbC', 0 ...
+			 ,'rdrain', 0 ...
+			 ,'wdrain', 0 ...
+			 ,'lcd', 0 ...
+			 ,'zb', 0 ...
+			 ,'pI', 1 ...
 		); % struct p
 
 		field_C = fieldnames(obj.pmu);
@@ -74,9 +88,22 @@ classdef Rietkerk < RAD_Model
 
 		obj.opt.base_str = 'rietkerk-';
 		obj.opt.isreal = true;
+		opt.nonlinear_flow = false;
+		obj.opt.linear_infiltration = true;
+		obj.opt.output.store_fluxes = false;
+		obj.opt.output.store_state_at_event = false;
+		obj.opt.output.store_stat_at_step = false;
+		obj.opt.output.store_step = false;
+		obj.opt.event = 'start';
+
+		obj.ptsrel.b = 0;
+		obj.ptsrel.w = 0;
+		obj.ptsrel.h = 0;
+		% TODO move to rad
+		obj.opt.temporal_noise = false;
 
 		% solver arguments
-		obj.odeopt   = struct();
+		%obj.odeopt   = struct();
 		end % Rietkerk_
 
 		function obj = Rietkerk(varargin)

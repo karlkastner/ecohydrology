@@ -13,37 +13,45 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function dt = adapt_time_step(obj,t,dt_old,dt0,stat)
+function dt = adapt_time_step(obj,t,dt_old)
 	% max time step satisfying the error constraint
-	dt = dt0;
+	dt = obj.aux.stat.dt_opt;
 
- 	% limit decrease
-	dt = max(dt,dt_old*obj.opt.dt_min_scale_down);
+	dt = dt.*obj.opt.time_integration.dt_safety_factor;
+
+ 	% limit decrease, this is usually unlimetted
+	dt = max(dt,dt_old*obj.opt.time_integration.dt_min_scale_down);
 
 	% limit increase
-	dt = min(dt,dt_old*obj.opt.dt_max_scale_up);
+	dt = min(dt,dt_old*obj.opt.time_integration.dt_max_scale_up);
 
-	% limit at lower bound
-	dt = max(dt,obj.opt.dt_min);
+	% limit at lower bound, this is usually only limited to 0
+	dt = max(dt,obj.opt.time_integration.dt_min);
 
 	% limit at upper bound
-	dt = min(dt,obj.opt.dt_max);
+	dt = min(dt,obj.opt.time_integration.dt_max);
+
+	% limit by condition number
+	% linsolver_tol = 1/c = 1/(1 + q*dt*max(eig(J))
+	tol = obj.opt.linear_solver.tol;
+	obj.aux.dt_max_prec = obj.opt.time_integration.dt_max_prec_scale*(1/tol-1)/(obj.aux.q*obj.aux.max_eig_J);
+	dt  = min(dt,obj.aux.dt_max_prec);
 
 	% avoid too many inner steps
-	switch (obj.opt.inner_solver)
-	case {'newton'}
-	switch (obj.opt.innersolver2)
+	if (~isempty(obj.opt.nlsolver.name))
+	switch (obj.opt.nlsolver.name)
+	case {'gauss-newton'}
+	switch (obj.opt.linear_solver.name)
+	% TODO mg-java was removed
 	case {'multigrid-java'}
 		iter_max = obj.opt.inner2_maxiter_;
 		if (~isempty(iter_max))
 			% the last one is the hardest always
-			iter = stat.inner2.iter(end);
+			iter = obj.aux.stat.linear_solver.iter(end);
 			dt = min(dt,dt_old*iter_max/iter);
 		end
 	end % switch i2
 	end % switch innersolver
-
-	% limit final step to final time
-	dt = min(dt,obj.T-t);
+	end
 end
 

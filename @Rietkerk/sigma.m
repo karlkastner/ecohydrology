@@ -24,7 +24,7 @@ function sigma = sigma(obj,t,z)
 		sigma = [];
 	end
 	if (~isempty(obj.pts))
-		nn = prod(obj.bx);
+		nn = prod(obj.nx);
 		sigma(1:nn) = sigma(1:nn) + obj.pts.b;
 		sigma(nn+1:2*nn) = sigma(nn+1:2*nn) + obj.pts.w;
 		sigma(2*nn+1:end) = sigma(2*nn+1:end) + obj.pts.h;

@@ -25,12 +25,13 @@ function [to, zo, out] = solve(obj)
 	% call solver
 	%
 	switch (solver_str)
-	case {  'euler_forward','solve_implicit','solve_split', ...
-		'step_react_advect_diffuse_erk', ...
-		'step_integrating_factor'}
-		[to,zo,out] = obj.solve_step();
+	case { 	'solve_step' }
+		obj.solve_step();
+		to  = obj.out.to;
+		zo  = obj.out.zo;
+		out = obj.out;
 	otherwise % use matlab build-in solver
-		dto = min(obj.opt.dto,obj.T);
+		dto = min(obj.opt.output.dt,obj.T);
 		T = [0:dto:obj.T];
 		timer=tic();
 		z0 = obj.opt.compute_class(obj.z0);

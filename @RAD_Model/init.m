@@ -126,7 +126,9 @@ function [x,C,S] = generate(dist,mu,sd,sl,n)
 				end
 		case {'geometric-ornstein-uhlenbeck'}
 			if (1 == obj.ndim)
-				error('1d not yet implemented');
+				theta = sl;
+				[x] = geometric_ou_1d_grid_cell_averaged_generate(mu,sd,theta,obj.L(1),obj.nx(1));
+				%,varargin)
 			else
 				% determine parameter
 				%[lmu,lmu_,lsd,lsd_,ltheta] = lognpdf_moment2par_correlated(mu,mu,sd,sd,sl);

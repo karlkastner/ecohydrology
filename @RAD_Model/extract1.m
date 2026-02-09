@@ -34,16 +34,10 @@ function varargout = extract1(obj,z)
 			varargout{idx} = z(1+(idx-1)*n:idx*n);
 		end
 		end
-		%b = z(1:n);	
-		%w = z(n+1:2*n);
-		%h = z(2*n+1:end);
 	else
 		for idx=1:obj.nvar
 			varargout{idx} = z(:,1+(idx-1)*n:idx*n);
 		end
-	%	b = z(:,1:n);	
-	%	w = z(:,n+1:2*n);
-	%	h = z(:,2*n+1:end);
 	end
 end
 
