@@ -114,6 +114,8 @@ function init_solve(obj)
 		obj.aux.fstep = @obj.step_react_advect_diffuse_erk;
 	case {'step_euler_forward'}
 		obj.aux.q = 0;
+		% TODO mobe into butcher table
+		obj.aux.stability_factor = 1*obj.opt.time_integration.stability_safety_factor;
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @step_euler_forward;
 		obj.aux.butcher_table = butcher_table('forward');
@@ -135,6 +137,13 @@ function init_solve(obj)
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_trapezoidal;
 		obj.aux.butcher_table = butcher_table('trapezoidal');
+	case {'trapezoidal_explicit','step_trapezoidal_explicit'}
+		obj.aux.q = 0.5;
+		% TODO mobe into butcher table
+		obj.aux.stability_factor = 2*obj.opt.time_integration.stability_safety_factor;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_trapezoidal;
+		obj.aux.butcher_table = butcher_table('trapezoidal');
 	case {'trbdf2'}
 		obj.aux.q = (2-sqrt(2))/2; 
 		obj.init_advection_diffusion_matrix();
@@ -144,6 +153,13 @@ function init_solve(obj)
 		obj.aux.q = 0.5;
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_midpoint;
+		obj.aux.butcher_table = butcher_table('midpoint');
+	case {'midpoint_explicit','step_midpoint_explicit'}
+		obj.aux.q = 0.5;
+		% TODO mobe into butcher table
+		obj.aux.stability_factor = 2*obj.opt.time_integration.stability_safety_factor;
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_midpoint_explicit;
 		obj.aux.butcher_table = butcher_table('midpoint');
 	case {'sdirk23'}
 		obj.aux.q=(3+sqrt(3))/6;
@@ -159,11 +175,6 @@ function init_solve(obj)
 		obj.aux.q = 1;
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_euler_double;
-	%case {'step_split'}
-	%	obj.aux.q=0;
-		% initialize fourier transform of impulse responses of linear
-		% advection-diffusion part
-	%switch (obj.opt.inner_solver)
 	case {'step_advect_diffuse_aid'}
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_split;

@@ -172,11 +172,16 @@ function solve_step(obj)
 
 		% adaptive error control, determine the time step
 		if (obj.opt.time_integration.adapt_time_step)
-			% TODO passing aux and dt_opt is not necessary
 			dt = obj.adapt_time_step(t,dt);
 		else
-			% Note, due to retris the time step might be adapted temporarily
-			dt = max(min(dt,obj.opt.time_integration.dt_max),obj.opt.time_integration.dt_min);
+			% reset to the initial time step
+			% due to retries the time step might have been adapted
+			% temporarily
+			dt = obj.opt.time_integration.dt_initial; 	
+			% max(min(dt,obj.opt.time_integration.dt_max),obj.opt.time_integration.dt_min);
+		end
+		if (obj.opt.time_integration.adapt_step_for_stability)
+			dt = min(dt,obj.aux.stability_factor*obj.aux.dt_max);
 		end
 
 		if (dedx)
