@@ -17,7 +17,7 @@
 %% extract biomass, soil water and surface water from the combined vector
 %
 function varargout = extract1(obj,z)
-	if (ndims(z)>1)
+	if (~isvector(z)>1)
 		nt = size(z,1);
 	else
 		nt = 1;

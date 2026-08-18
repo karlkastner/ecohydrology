@@ -23,7 +23,8 @@ function init_solve(obj)
 	end
 
 	obj.aux.ignore_constant_rates = false;
-	obj.aux.surface_flow = true;
+	% activate all variables, including surface flow
+	obj.aux.isactive = true(1,3); %surface_flow = true;
 	if (obj.opt.output.store_fluxes)
 		no = length(obj.out.to);
 		output_class = func2str(obj.opt.output_class);

@@ -16,8 +16,7 @@
 function [ru,slowdown] = soil_water_uptake_rate(obj,z)
 	p  = obj.p;
 	% nb, reshape is faster than extraction
-	%z = reshape(z,[],3);
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)) %surface_flow)
 		z = reshape(z,[],3);
 	else
 		z = reshape(z,[],2);

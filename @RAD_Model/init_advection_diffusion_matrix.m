@@ -13,114 +13,120 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+%% this is slow, but only called at startup
 function init_advection_diffusion_matrix(obj)
 	if (isfield(obj.p,'ex') && ~isempty(obj.p.ex))
-	% note, bc of circular condition, do not compute in matrix setup routines
+	% note, bc of (possible) circular condition, dx is not computee in matrix setup routines
+	% as the location of the boundary is interpreted differently
 	dx = obj.L./obj.nx;
 
-	bcl = obj.boundary_condition{1,1};
-	if (iscell(bcl))
-		bcl = cell2mat(bcl(1:3));
-	end
+	% copy boundary from first to other state variables, when only
+	% one the bc for the first state variable has been stated
 
-	% first dimension
-	obj.aux.D1xl = derivative_matrix_1_1d(obj.nx(1),dx(1),+1,bcl,obj.boundary_condition{1,2},true);
-	obj.aux.D1xr = derivative_matrix_1_1d(obj.nx(1),dx(1),-1,bcl,obj.boundary_condition{1,2},true);
-	obj.aux.D2x  = derivative_matrix_2_1d(obj.nx(1),dx(1),2,bcl,obj.boundary_condition{1,2},true);
-	obj.aux.D1xl1 = obj.aux.D1xl;
-	obj.aux.D1xr1 = obj.aux.D1xr;
-	obj.aux.D2x1  = obj.aux.D2x;
-
-	% second dimension
-	if (obj.ndim > 1)
-		%D1y = derivative_matrix_1_1d(obj.nx(2),obj.L(2),-sign(obj.pmu.vx(2)),obj.boundary_condition{1},obj.boundary_condition{2});
-		obj.aux.D1yl1 = derivative_matrix_1_1d(obj.nx(2),dx(2),+1,obj.boundary_condition{2,1},obj.boundary_condition{2,2},true);
-		obj.aux.D1yr1 = derivative_matrix_1_1d(obj.nx(2),dx(2),-1,obj.boundary_condition{2,1},obj.boundary_condition{2,2},true);
-		obj.aux.D2y1  = derivative_matrix_2_1d(obj.nx(2),dx(2),2,obj.boundary_condition{2,1},obj.boundary_condition{2,2},true);
-		obj.aux.Ix   = speye(obj.nx(1));
-		obj.aux.Iy   = speye(obj.nx(2));
-		obj.aux.D1xr = kron(obj.aux.D1xr1,obj.aux.Iy);
-		obj.aux.D1xl = kron(obj.aux.D1xl1,obj.aux.Iy);
-		obj.aux.D1yr = kron(obj.aux.Ix,obj.aux.D1yr1);
-		obj.aux.D1yl = kron(obj.aux.Ix,obj.aux.D1yl1);
-		obj.aux.D2x  = kron(obj.aux.D2x1,obj.aux.Iy);
-		obj.aux.D2y  = kron(obj.aux.Ix,obj.aux.D2y1);
-	end
 	% stack the matrix of the advection-diffusion part
-	n = prod(obj.nx);
-	%obj.aux.AD = spzeros(obj.nvar*n,obj.nvar*n);
-	obj.aux.AD = [];
-	obj.aux.Ax = [];
-	obj.aux.Ay = [];
-	% spalloc(obj.nvar*n,obj.nvar*n,5*obj.nvar*n);
-	Z = spzeros(n,n);
-	% matrix entries for each state variable
-	for idx=1:obj.nvar
-		% first dimension
-		% diffusion part
-		ADxi  = obj.p.ex(idx)*obj.aux.D2x;
-		ADx1i = obj.p.ex(idx)*obj.aux.D2x1;
-		% advection part
-		if (obj.p.vx(idx) < 0)
-			ADxi  = ADxi  + obj.p.vx(idx)*obj.aux.D1xl;
-			ADx1i = ADx1i + obj.p.vx(idx)*obj.aux.D1xl1;
-		else
-			ADxi  = ADxi  + obj.p.vx(idx)*obj.aux.D1xr;
-			ADx1i = ADx1i + obj.p.vx(idx)*obj.aux.D1xr1;
-		end
-		if (length(obj.nx)>1)
-			% diffusion part
-			ADyi  = obj.p.ey(idx)*obj.aux.D2y;
-			ADy1i = obj.p.ey(idx)*obj.aux.D2y1;
-			% advection part		
-			if (obj.p.vy(idx) < 0)
-				ADyi  = ADyi  + obj.p.vy(idx)*obj.aux.D1yl;
-				ADy1i = ADy1i + obj.p.vy(idx)*obj.aux.D1yl1;
-			else
-				ADyi  = ADyi  + obj.p.vy(idx)*obj.aux.D1yr;
-				ADy1i = ADy1i + obj.p.vy(idx)*obj.aux.D1yr1;
-			end	
-		end
-		% write to matrix comprising of all dimensions
-		% this is slow, but only called at startup
-		% TODO this can be more elegantly written with kron([0,1,0],A)
-		% obj.aux.AD((idx-1)*n+1:idx*n,(idx-1)*n+1:idx*n) = ADi; 
-		A = [];
-		Ax = [];
-		Ay = [];
-		for jdx=1:idx-1
-			A  = [A,Z];
-			Ax = [Ax,Z];
-			if (obj.ndim>1)
-				Ay = [Ay,Z];
-			end
-		end
-		Ax = [A,ADxi];
-		if (obj.ndim > 1)
-			A = [A,ADxi+ADyi];
-			Ay = [Ay,ADyi];
-		else
-			A = [A,ADxi];
-		end
-		for jdx=idx+1:obj.nvar
-			A = [A,Z];
-			Ax = [Ax,Z];
-			if (obj.ndim>1)
-				Ay = [Ay,Z];
-			end
-		end
-		obj.aux.AD = [obj.aux.AD;A];
-		obj.aux.Ax = [obj.aux.Ax;Ax];
-		%obj.aux.Ax{idx} = ADxi;
-		obj.aux.Ax1{idx} = ADx1i;
-		if (obj.ndim > 1)
-			obj.aux.Ay = [obj.aux.Ay;Ay];
-			% obj.aux.Ay{idx} = ADyi;
-			obj.aux.Ay1{idx} = ADy1i;
-		end
+	nn = prod(obj.nx);
+
+	% identity matrix, first dimension
+	obj.aux.Ix   = speye(obj.nx(1));
+
+	% advection diffusion matrix of each state variable, first dimension
+	% the splitting schemes operate on each state variable individually
+	obj.aux.Axi = {};
+
+	% stacked advection-diffusion matrix, first dimension
+	% the alternating implicit direction schmes require dimensionally split matrices
+	obj.aux.Ax = spzeros(obj.nvar*nn,obj.nvar*nn);
+
+	if (obj.ndim > 1)
+		% identity matrix, second dimension
+		obj.aux.Iy   = speye(obj.nx(2));
+		% advection diffusion matrix of each state variable, second dimension
+		obj.aux.Ayi = {};
+		% stacked advection-diffusion matrix, second, dimension
+		obj.aux.Ay  = spzeros(obj.nvar*nn,obj.nvar*nn);
 	end
-	end % if ~isepmpty ex
-	obj.aux.I1 = speye(prod(obj.nx));
-	obj.aux.I = speye(obj.nvar*prod(obj.nx));
+	
+	% for each state variable
+	for vdx=1:obj.nvar
+		% TODO, this should go into the matrix setup
+if (0)
+		% left boundary condition
+		bcxl = obj.boundary_condition{1,1,nvar};
+		if (iscell(bcxl))
+			bcxl = cell2mat(bcxl(1:3));
+		end
+		% right boundary condition
+		bcxr = obj.boundary_condition{1,2,nvar};
+		if (iscell(bcxr))
+			bcxl = cell2mat(bcxr(1:3));
+		end
+end
+		switch (obj.ndim)
+		case {1}
+			% first dimension, first derivative (advection)
+			% TODO allow for spatially varying advection coefficient
+			% TODO combine D1 and D2 setup into one function, to allow for artificial diffusion
+			% upwinding
+			sign_vx = sign(obj.p.vx{vdx});
+			D1x     = -derivative_matrix_1_1d(obj.nx(1),dx(1),sign_vx, ...
+					obj.boundary_condition{1,1,vdx}, ...
+					obj.boundary_condition{1,2,vdx},true);
+			obj.aux.Axi{vdx} = obj.p.vx{vdx}*D1x;
+		
+			% first dimension, second derivative (diffusion)
+			if (isscalar(obj.p.ex{vdx}))
+				% constant diffusion
+				eD2x = obj.p.ex{vdx}*derivative_matrix_2_1d(obj.nx(1),dx(1),2, ...
+					obj.boundary_condition{1,1,vdx},...
+					obj.boundary_condition{1,2,vdx},true);
+			else
+				% spatially varying diffusion coefficient
+				eD2x = derivative_matrix_2_1d_vc(obj.nx(1),obj.L(1),obj.p.ex{vdx});
+			end
+			obj.aux.Axi{vdx} = obj.aux.Axi{vdx} + eD2x;
+			% write to stacked matrix
+			id = (vdx-1)*nn + (1:nn);
+			obj.aux.Ax(id,id) = obj.aux.Axi{vdx};
+		case {2} % two dimensions
+			%D1y = derivative_matrix_1_1d(obj.nx(2),obj.L(2),-sign(obj.pmu.vx(2)),obj.boundary_condition{1},obj.boundary_condition{2});
+			% first dimension, first derivative
+			% TODO allow for varying coefficients, pass varying coefficients to the matrix setup directly
+			sign_vx = sign(obj.p.vx{vdx});
+			vD1x = -obj.p.vx{vdx}*derivative_matrix_1_1d(obj.nx(2),dx(2),sign_vx, ...
+							obj.boundary_condition{1,1,vdx}, ...
+							obj.boundary_condition{1,2,vdx},true);
+
+			eD2x  = obj.p.ex{vdx}*derivative_matrix_2_1d(obj.nx(1),dx(1),2, ...
+							obj.boundary_condition{1,1,vdx}, ...
+							obj.boundary_condition{2,2,vdx},true);
+			% combined advection diffusion
+			obj.aux.Axi{vdx} = kron(vD1x + eD2x, obj.aux.Iy);
+
+			% second dimension, first derivative
+			sign_vy = sign(obj.p.vy{vdx});
+			vD1y = -obj.p.vy{vdx}*derivative_matrix_1_1d(obj.nx(2),dx(2),sign_vy, ...
+							obj.boundary_condition{1,1,vdx}, ...
+							obj.boundary_condition{1,2,vdx},true);
+
+			D2y  = obj.o.ey{vdx}*derivative_matrix_2_1d(obj.nx(2),dx(2),2, ...
+						obj.boundary_condition{2,1,vdx}, ...
+						obj.boundary_condition{2,2,vdx},true);
+
+			% combined advection diffusion
+			obj.aux.Ayi{vdx} = kron(vD1y + eD2y, obj.aux.Iy);
+
+			% write to stacked matrix
+			id = (vdx-1)*nn + (1:nn);
+			obj.aux.Ax(id,id) = obj.aux.Axi{vdx};
+			obj.aux.Ay(id,id) = obj.aux.Ayi{vdx};
+		end % switch ndim
+	end % for vdx
+
+	% combine dimensions
+	obj.aux.A = obj.aux.Ax;
+	if (obj.ndim > 1)
+		obj.aux.A = obj.aux.A + obj.aux.Ay;
+	end % if ndim > 1
+	end % if ifsfield ex
 end % init_advection_diffusion_matrix
 

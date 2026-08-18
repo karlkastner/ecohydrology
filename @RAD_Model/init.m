@@ -18,6 +18,7 @@
 function obj = init(obj)
 	n = obj.nx;
 	L = obj.L;
+	obj.aux.isactive = true;
 
 	% initalize random number generator
 	if (~isempty(obj.opt.rng))
@@ -60,12 +61,16 @@ function obj = init(obj)
 				if (isscalar(z0i))
 					z0i = z0i*ones(prod(obj.nx),1);
 				end
-			elseif (isfield(obj.initial_condition,'fc') && ~isempty(obj.initial_condition.fc))
+			elseif (isfield(obj.initial_condition,'fc') ...
+				 && ~isempty(obj.initial_condition.fc) ...
+			       )
 				fc = obj.initial_condition.fc
 				c = obj.initial_condition.c(idx)
 				s = obj.initial_condition.s(idx)
 				% TODO 2D
-				z0i = mu + s*sin(2*pi*fc*cvec(obj.x)) + c*cos(2*pi*fc*cvec(obj.x));
+				z0i = ( mu + s*sin(2*pi*fc*cvec(obj.x)) ...
+					   + c*cos(2*pi*fc*cvec(obj.x)) ...
+				      );
 			end
 			z0 = [z0;z0i];
 		end
@@ -80,8 +85,10 @@ function obj = init(obj)
 	obj.init_solve();
 
 function [x,C,S] = generate(dist,mu,sd,sl,n)
+		x = [];
 		C = [];
 		S = [];
+	if (~isempty(mu))
 		dx = obj.dx;
 		% scaling standard deviations:
 		% dx : devide   as perturbations are average in space when cells are larger
@@ -105,7 +112,7 @@ function [x,C,S] = generate(dist,mu,sd,sl,n)
 			[a,b] = gampdf_moment2par(mu,sd);
 			x = gamrnd(a,b,prod(n),1);
 			% x = flat(mu.*gamrnd(1/sd^2,sd^2,n);
-		case {'lognormal'}
+		case {'logn','lognormal'}
 			[a,b] = lognpdf_moment2par(mu,sd);
 			x = lognrnd(a,b,prod(n),1);
 		case {'exp'}
@@ -158,6 +165,7 @@ function [x,C,S] = generate(dist,mu,sd,sl,n)
 			error('unimplemented distribution');
 		end
 		end
+	end % ~ isempty(mu)
 end % generate
 
 end %

@@ -13,14 +13,20 @@
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-function dz_dt = dz_dt_react(obj,t,z,c)
+function dz_dt = dz_dt_react(obj,t,z) %,c_)
 	nn    = prod(obj.nx);
 	z     = reshape(z,nn,obj.nvar);
-	if (nargin()<4)
-		c= obj.p.c;
+	if (isa(obj.p.b,'function_handle'))
+		b = obj.p.b(t);
+	else
+		b = obj.p.b;
 	end
+%	if (nargin()<4)
+%		c_= obj.p.c;
+%	end
 	% this is equal to J*z + b, but faster
-	dz_dt = (z*c) + obj.p.b';
+%	dz_dt = (z*c_) + obj.p.b';
+	dz_dt = z.*obj.p.c + b;
 	dz_dt = reshape(dz_dt,nn*obj.nvar,1);
 end
 

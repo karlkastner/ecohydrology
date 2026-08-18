@@ -18,7 +18,8 @@ function rdb = dieback_rate(obj,z)
 	% note that the slow down is for a consistent water balance applied both
 	% to the uptate in the biomass and soil water, in contrast to Guttal,
 	% who applied it only to the biomass
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)) %surface_flow)
+	%if (obj.aux.surface_flow)
 		z = reshape(z,[],3);
 	else
 		z = reshape(z,[],2);

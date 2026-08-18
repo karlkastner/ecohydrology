@@ -15,21 +15,23 @@
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function z = step_preprocess(obj,t,dt,z)
 	% toggle surface flow on and off
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)) %surface_flow)
 		% check if h is zero
 		% TODO no magic numbers	
 		hthresh = 1e-4;
 		if (   (0 == obj.precipitation_rate(t,dt)) ...
 		    && (max(z(2*end/3+1:end))<hthresh) ...
 		    )
-			obj.aux.surface_flow = 0;
+			% deactivate surface flow
+			obj.aux.isactive(3) = false; %surface_flow = 0;
 			obj.aux.I = obj.aux.I_without_surface_flow;
 			obj.aux.AD = obj.aux.AD_without_surface_flow;
 			z = z(1:2*end/3);
 		end
 	else
 		if (obj.precipitation_rate(t,dt) > 0)
-			obj.aux.surface_flow = 1;
+			% reactivate surface flow
+			obj.aux.isactive(3) = true; % surface_flow = 1;
 			z(end+1:(end+prod(obj.nx))) = 0;
 			obj.aux.I = obj.aux.I_with_surface_flow;
 			obj.aux.AD = obj.aux.AD_with_surface_flow;

@@ -88,7 +88,8 @@ function solve_step(obj)
 				obj.aux.step.n_liter = obj.aux.step.n_liter + sum([obj.aux.stat.linear_solver.iter]);
 			end
 			% TODO no magic numbers and ranges
-			if (min(z(1:2*end/3)) < -1e-4)
+			%if (min(z(1:2*end/3)) < -1e-4)
+			if (min(z) < -1e-4)
 				printf('Progress %f%% Time %f Step %d Negative value, reducing time step to %g\n' ...
 					, 100*t/obj.T(2), t,obj.aux.tdx,dt_);
 				z=obj.aux.zold;
@@ -106,16 +107,16 @@ function solve_step(obj)
 				z = obj.aux.zold;
 				printf('Progress %f%% Time %f Step %d Solver failed, reducing time step to %g\n' ...
 					, 100*t/obj.T(2),t,obj.aux.tdx,dt_);
-			elseif (obj.opt.time_integration.adapt_time_step ...
+			elseif (obj.opt.time_integration.adapt_step_length ...
 				&& obj.aux.stat.dt_opt < 0.8*dt_ ...	
 				&& dt_ > obj.opt.time_integration.dt_min ...
 				)
 				obj.aux.step.n_error_tolerance_exceeded = obj.aux.step.n_error_tolerance_exceeded + 1;
 				% if the error is too large, decrease the time step and retry
-				% interpolate as initial guess
 				dt_ = max(obj.opt.time_integration.dt_min,obj.aux.stat.dt_opt);
 				dedx=0;
-				z = obj.aux.zold + obj.aux.stat.dt_opt/dt_*(z-obj.aux.zold);
+				% interpolate as initial guess
+				z = obj.aux.zold; % + obj.aux.stat.dt_opt/dt_*(z-obj.aux.zold);
 				printf('Progress %f%% Time %f Step %d Error tolerance exceeded, reducing time step to %g\n' ...
 					, 100*t/obj.T(2),t,obj.aux.tdx,dt_);
 			else
@@ -171,7 +172,7 @@ function solve_step(obj)
 		end
 
 		% adaptive error control, determine the time step
-		if (obj.opt.time_integration.adapt_time_step)
+		if (obj.opt.time_integration.adapt_step_length)
 			dt = obj.adapt_time_step(t,dt);
 		else
 			% reset to the initial time step

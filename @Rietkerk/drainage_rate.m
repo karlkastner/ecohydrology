@@ -18,12 +18,13 @@ function r = drainage_rate(obj,z)
 	%:[b,w,h]=obj.extract2(z);  
 	% reshape is faster that extract
 	%z = reshape(z,[],3);
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)) %surface_flow)
 		z = reshape(z,[],3);
 	else
 		z = reshape(z,[],2);
 	end
 	%r = p.rdrain.*(w.^2./(p.wdrain + w));
-	r = p.rdrain.*(z(:,2).*z(:,2)./(p.wdrain + z(:,2)));
+	%r = p.rdrain.*(z(:,2).*z(:,2)./(p.wdrain + z(:,2)));
+	r = p.rdrain.*(z(:,2)./(1 + p.wdrain*z(:,2)));
 end
 

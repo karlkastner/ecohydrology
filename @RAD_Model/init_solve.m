@@ -175,6 +175,9 @@ function init_solve(obj)
 		obj.aux.q = 1;
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_euler_double;
+	case {'step_advect_diffuse_q'}
+		obj.init_advection_diffusion_matrix();
+		obj.aux.fstep = @obj.step_split;
 	case {'step_advect_diffuse_aid'}
 		obj.init_advection_diffusion_matrix();
 		obj.aux.fstep = @obj.step_split;

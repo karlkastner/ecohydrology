@@ -14,7 +14,7 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function finish(obj,z)
-	if (~obj.aux.surface_flow)
+	if (~obj.aux.isactive(3)) %surface_flow)
 		z(end+1:end+prod(obj.nx)) = 0;
 	end
 	finish@RAD_Model(obj,z);

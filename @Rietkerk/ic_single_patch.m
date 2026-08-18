@@ -16,7 +16,7 @@
 %
 %% homogeneous (not necessarily stable) states of the Rietkerk system
 %
-function [z,b,w,h,J,v,e] = single_patch(obj,t,p,bmax,sp)
+function [z,b,w,h,J,v,e] = ic_single_patch(obj,t,p,bmax,sp)
 	nx = obj.nx;
 	if (1 == obj.ndim)
 		nx = [nx,1];

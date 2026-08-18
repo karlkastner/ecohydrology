@@ -32,6 +32,8 @@ classdef RAD_Linear < RAD_Model
 		end
 		function obj = RAD_Linear_(obj)
 			obj.nvar = 1;
+			obj.pmu.b  = 0;
+			obj.pmu.c  = 0;
 			obj.pmu.ex = 0.1;
 			obj.pmu.ey = 0.1;
 			obj.pmu.vx = 0;

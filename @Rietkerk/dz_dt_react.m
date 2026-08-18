@@ -34,7 +34,7 @@ function dz_dt = dz_dt_react(obj,t,z)
 	rdb = obj.dieback_rate(z);
 
 	db_dt = obj.p.cb.*ru - rdb;
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)) %surface_flow)
 		% precipitation rate
 		% this must be computed before infiltration, as it limits the infiltrationrate
 		% for non-linear infiltration

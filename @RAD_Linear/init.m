@@ -16,6 +16,7 @@
 %
 function init(obj)
 	init@RAD_Model(obj);
+	obj.aux.isactive = true(1,obj.nvar);
 	obj.init_matrix_react();
 end
 

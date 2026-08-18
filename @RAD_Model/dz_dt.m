@@ -14,6 +14,6 @@
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 function dz_dt = dz_dt(obj,t,z,varargin)
-	dz_dt = obj.dz_dt_react(t,z,varargin{:}) + obj.aux.AD*z;
+	dz_dt = obj.dz_dt_react(t,z,varargin{:}) + obj.aux.A*z;
 end
 

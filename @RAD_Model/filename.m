@@ -16,7 +16,7 @@
 %
 function [oname,oname_final,key] = filename(obj)
 	key         = obj.hash();
-	oname       = [obj.opt.output.path_str,obj.opt.output.base_str,num2str(key),'.mat'];
-	oname_final = [obj.opt.output.path_str,obj.opt.output.base_str,num2str(key),'-final.mat'];
+	oname       = [obj.opt.output.path_str,obj.opt.output.base_str,'-',num2str(key),'.mat'];
+	oname_final = [obj.opt.output.path_str,obj.opt.output.base_str,'-',num2str(key),'-final.mat'];
 end
 

@@ -27,7 +27,10 @@ function [t,z,out] = run(obj)
 			printf('Running %d\n',key);
 			printf([oname_final,'\n']);
 			% reserve output files (quasi-semapthore for parallel computation)
+			% store aux
+			aux = obj.aux;
 			obj.save();
+			obj.aux = aux;
 			% run model
 			tic();
 			obj.init();

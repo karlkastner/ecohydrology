@@ -18,8 +18,8 @@
 %
 % TODO result is awry when pattern is noisy, upwinding necessary ?
 %
-function [c,cme] = celerity(obj,z,individual)
-	if (nargin()<3)
+function [c,cme] = celerity(obj,t,z,individual)
+	if (nargin()<4)
 		individual = 0;
 	end
 	if (~isvector(z))
@@ -34,11 +34,13 @@ function [c,cme] = celerity(obj,z,individual)
 		obj.init_advection_diffusion_matrix();
 	end
 	z = double(z);
-	dz_dt = obj.dz_dt([],z);
+	dz_dt = obj.dz_dt(t,z);
 	% interestingly, the upwinding seems to be more accurate than
 	% central differences, maybe bc upwiding is also used in dz_dt?
-	n = prod(obj.nx);
-	obj.aux.Z = sparse(n,n);
+	nx = prod(obj.nx);
+	obj.aux.Z = sparse(nx,nx);
+	if (0)
+
 	D1xl = [obj.aux.D1xl,obj.aux.Z,obj.aux.Z;
               obj.aux.Z,obj.aux.D1xl,obj.aux.Z;
 	      obj.aux.Z,obj.aux.Z,obj.aux.D1xl];
@@ -49,6 +51,16 @@ function [c,cme] = celerity(obj,z,individual)
 	      obj.aux.Z,obj.aux.Z,obj.aux.D1yl];
 	dz_dy = D1yl*z;
 	end
+
+	else
+		% TODO quick fix since change of Dx matrices
+		dx = obj.dx;
+		dz_dx = zeros(size(z));
+		dz_dx(1:nx(1),:) = cdiff(z(1:nx(1),:))/dx(1);
+		dz_dx(nx(1)+1:2*nx(1),:) = cdiff(z(1:nx(1),:))/dx(1);
+		dz_dx(2*nx(1)+1:end,:) = cdiff(z(1:nx(1),:))/dx(1);
+	end
+	
 	
 	c   = zeros(nt,obj.ndim);
 	cme = zeros(nt,obj.ndim);

@@ -25,7 +25,7 @@ function [dz_dt] = dz_dt(obj,t,z)
 		obj.aux.dh_dt = dh_dt;
 		end
 		% for nonlinear flow the h-block of AD is zero
-		dz_dt = obj.dz_dt_react(t,z) + obj.aux.AD*z;
+		dz_dt = obj.dz_dt_react(t,z) + obj.aux.A*z;
 		if (obj.opt.nonlinear_flow)
 			dz_dt(2*nn+1:end) = dz_dt(2*nn+1:end) + dh_dt;
 		end

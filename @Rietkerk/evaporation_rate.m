@@ -16,7 +16,7 @@
 function r = evaporation_rate(obj,z)
 	p = obj.p;
 	%[b,w,h] = obj.extract2(z);  
-	if (obj.aux.surface_flow)
+	if (obj.aux.isactive(3)); %surface_flow)
 		z = reshape(z,[],3);
 	else
 		z = reshape(z,[],2);
@@ -24,7 +24,11 @@ function r = evaporation_rate(obj,z)
 	%z = reshape(z,[],3);
 	% note that reshape only reinterprets but does not copy the data
 	%bwh = reshape(z,[],3);
-	r = p.revap.*z(:,2).*(p.bevap)./(p.bevap+z(:,1));
+	%r = p.revap.*z(:,2).*(p.bevap)./(p.bevap+z(:,1));
+	r  = p.revap.*z(:,2)./(1 + p.bevap*z(:,1));
 	%r = p.revap.*bwh(:,2).*(p.bevap)./(p.bevap+bwh(:,1));
+	%r = p.revap.*z(:,2).*1./(1 + p.bevap*z(:,1));
+	% decrease due to shadowing
+	%r = p.revap.*z(:,2).*(p.bevap)./(1 + p.bevap*z(:,1));
 end
 
