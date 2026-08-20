@@ -70,6 +70,24 @@ methods
 		                 , 'vx', [] ...
 		                 , 'vy', [] ...
 				 );
+		obj.unit = struct( ...
+		  'b',    '[b]' ... % biomass
+		, 'bc',   '[b]' ... % upper bimoass in logistic function
+		, 'dirc', '[L]' ... % displacement of competition kernel
+		, 'dirf', '[L]' ... % displacement of facilitation kernel
+		, 'ef',   '[b]^{-2} [T]^{-1}' ... % scale of facilitation (growth rate)
+		, 'ex',   '[L]^2 [T]^{-1}' ... % biomass diffusion along first axis
+		, 'ey',   '[L]^2 [T]^{-1}' ... % biomass diffusion along second axix
+		, 'lc',   '[L]' ... % extent of competition kernel
+		, 'lf',   '[L]' ... % extent of facilitation kernel
+		, 'mu',   '[T]^{-1}' ... % scale of competition (biomass dieback rate)
+		, 'xc',   '[b]^{-2}' ... % exponent of competition 
+		, 'xf',   '[b]^{-2}' ... % exponent of facilitation
+		, 'vx',   '[]' ...
+		, 'vy',   '[]' ...
+		, 'T',    '[T]' ... % time
+		, 'L',    '[L]' ... % length
+		);
 		obj.opt.p_initial = 0.01;
 		obj.opt.output.base_str  = 'tlidi';
 	end % properties 
